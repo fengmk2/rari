@@ -20,7 +20,7 @@ catalogs:
   build:
     rolldown: ^1.0.0-rc.16
     vite: ^8.0.9
-    vite-plus: ^0.1.18
+    vite-plus: 0.1.19-alpha.3
   cli:
     '@clack/prompts': ^1.2.0
   default:
