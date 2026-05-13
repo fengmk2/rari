@@ -6,62 +6,62 @@ trustPolicyExclude:
 packages:
   - examples/*
   - packages/*
-  - '!packages/rari-darwin-x64'
-  - '!packages/rari-linux-arm64'
-  - '!packages/rari-linux-x64'
-  - '!packages/rari-win32-arm64'
-  - '!packages/rari-win32-x64'
+  - "!packages/rari-darwin-x64"
+  - "!packages/rari-linux-arm64"
+  - "!packages/rari-linux-x64"
+  - "!packages/rari-win32-arm64"
+  - "!packages/rari-win32-x64"
   - test/fixtures/*
   - web
 catalogs:
   analytics:
-    '@posthog/react': ^1.9.0
+    "@posthog/react": ^1.9.0
     posthog-js: ^1.372.9
   build:
     rolldown: ^1.0.0
     vite: ^8.0.11
     vite-plus: 0.1.21-alpha.7
   cli:
-    '@clack/prompts': ^1.3.0
+    "@clack/prompts": ^1.3.0
   default:
     rari: ^0.13.4
   eslint:
-    '@antfu/eslint-config': ^8.2.0
-    '@eslint-react/eslint-plugin': ^3.0.0
-    '@typescript-eslint/utils': ^8.59.2
+    "@antfu/eslint-config": ^8.2.0
+    "@eslint-react/eslint-plugin": ^3.0.0
+    "@typescript-eslint/utils": ^8.59.2
     eslint: ^10.3.0
     eslint-plugin-de-morgan: ^2.1.2
     eslint-plugin-oxlint: ^1.63.0
     eslint-plugin-react-refresh: ^0.5.2
     knip: ^6.12.1
   mdx:
-    '@mdx-js/mdx': ^3.1.1
-    '@shikijs/core': ^3.23.0
-    '@shikijs/engine-oniguruma': ^3.23.0
-    '@shikijs/langs': ^3.23.0
-    '@shikijs/themes': ^3.23.0
-    '@shikijs/types': ^3.23.0
+    "@mdx-js/mdx": ^3.1.1
+    "@shikijs/core": ^3.23.0
+    "@shikijs/engine-oniguruma": ^3.23.0
+    "@shikijs/langs": ^3.23.0
+    "@shikijs/themes": ^3.23.0
+    "@shikijs/types": ^3.23.0
     remark-gfm: ^4.0.1
   monitoring:
-    '@sentry/react': ^10.52.0
+    "@sentry/react": ^10.52.0
   react:
-    '@types/react': ^19.2.14
-    '@types/react-dom': ^19.2.3
+    "@types/react": ^19.2.14
+    "@types/react-dom": ^19.2.3
     react: ^19.2.6
     react-dom: ^19.2.6
   tailwind:
-    '@tailwindcss/vite': ^4.2.4
+    "@tailwindcss/vite": ^4.2.4
     tailwindcss: ^4.2.4
   testing:
-    '@playwright/test': ^1.59.1
-    '@vitest/coverage-v8': ^4.1.5
+    "@playwright/test": ^1.59.1
+    "@vitest/coverage-v8": ^4.1.5
   typescript:
-    '@types/node': ^25.6.1
-    '@typescript/native-preview': ^7.0.0-dev.20260507.1
+    "@types/node": ^25.6.1
+    "@typescript/native-preview": ^7.0.0-dev.20260507.1
 onlyBuiltDependencies:
   - esbuild
   - oxlint
-  - '@shikijs/engine-oniguruma'
+  - "@shikijs/engine-oniguruma"
 allowBuilds:
   core-js: true
   protobufjs: true
