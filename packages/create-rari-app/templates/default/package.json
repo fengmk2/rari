@@ -29,6 +29,6 @@
     "@types/react-dom": "^19.2.3",
     "@typescript/native-preview": "^7.0.0-dev.20260525.1",
     "tailwindcss": "^4.3.0",
-    "vite-plus": "^0.1.22"
+    "vite-plus": "https://pkg.pr.new/voidzero-dev/vite-plus@1703"
   }
 }
