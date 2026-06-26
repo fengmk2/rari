@@ -1,12 +1,6 @@
-'use client'
+"use client";
 
-export default function LayoutErrorBoundary({
-  error,
-  reset,
-}: {
-  error: Error
-  reset: () => void
-}) {
+export default function LayoutErrorBoundary({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div data-testid="layout-error-boundary">
       <h2>Layout Error Caught!</h2>
@@ -15,5 +9,5 @@ export default function LayoutErrorBoundary({
         Reset Layout
       </button>
     </div>
-  )
+  );
 }

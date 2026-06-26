@@ -1,19 +1,23 @@
-import type { Metadata } from 'rari'
+import type { Metadata } from "rari";
 
-let callCount = 0
+let callCount = 0;
 
 async function getCachedData(label: string, cacheScope: string) {
-  'use cache: remote'
-  void cacheScope
-  callCount++
-  return label
+  "use cache: remote";
+  void cacheScope;
+  callCount++;
+  return label;
 }
 
-export default async function UseCacheRemotePage({ searchParams }: { searchParams?: { case?: string } }) {
-  const cacheScope = searchParams?.case ?? 'default'
-  const result1 = await getCachedData('first', cacheScope)
-  const result2 = await getCachedData('first', cacheScope)
-  const result3 = await getCachedData('second', cacheScope)
+export default async function UseCacheRemotePage({
+  searchParams,
+}: {
+  searchParams?: { case?: string };
+}) {
+  const cacheScope = searchParams?.case ?? "default";
+  const result1 = await getCachedData("first", cacheScope);
+  const result2 = await getCachedData("first", cacheScope);
+  const result3 = await getCachedData("second", cacheScope);
 
   return (
     <div>
@@ -26,9 +30,9 @@ export default async function UseCacheRemotePage({ searchParams }: { searchParam
         {callCount}
       </p>
     </div>
-  )
+  );
 }
 
 export const metadata: Metadata = {
-  title: 'use cache: remote Test',
-}
+  title: "use cache: remote Test",
+};

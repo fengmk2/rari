@@ -1,114 +1,106 @@
-import type { ReactElement } from 'react'
+import type { ReactElement } from "react";
 
 export interface ImageResponseOptions {
-  width?: number
-  height?: number
+  width?: number;
+  height?: number;
 }
 
 export interface ImageResponseSize {
-  width: number
-  height: number
+  width: number;
+  height: number;
 }
 
-const REACT_MEMO = Symbol.for('react.memo')
-const REACT_FORWARD_REF = Symbol.for('react.forward_ref')
+const REACT_MEMO = Symbol.for("react.memo");
+const REACT_FORWARD_REF = Symbol.for("react.forward_ref");
 
 export class ImageResponse {
-  private element: ReactElement
-  private options: ImageResponseOptions
+  private element: ReactElement;
+  private options: ImageResponseOptions;
 
   constructor(element: ReactElement, options: ImageResponseOptions = {}) {
-    this.element = element
+    this.element = element;
     this.options = {
       width: options.width || 1200,
       height: options.height || 630,
-    }
+    };
   }
 
   toJSON() {
     return {
-      type: 'ImageResponse',
+      type: "ImageResponse",
       element: this.serializeElement(this.element),
       options: this.options,
-    }
+    };
   }
 
   private resolveAndInvoke(type: any, props: any): any {
-    let resolved = type
-    while (resolved && typeof resolved === 'object') {
-      if (resolved.$$typeof === REACT_MEMO)
-        resolved = resolved.type
-      else if (resolved.$$typeof === REACT_FORWARD_REF)
-        resolved = resolved.render
-      else
-        break
+    let resolved = type;
+    while (resolved && typeof resolved === "object") {
+      if (resolved.$$typeof === REACT_MEMO) resolved = resolved.type;
+      else if (resolved.$$typeof === REACT_FORWARD_REF) resolved = resolved.render;
+      else break;
     }
 
-    if (typeof resolved !== 'function')
-      return null
+    if (typeof resolved !== "function") return null;
 
     try {
-      const rendered = resolved(props || {})
-      if (rendered && typeof rendered.then === 'function') {
+      const rendered = resolved(props || {});
+      if (rendered && typeof rendered.then === "function") {
         console.warn(
           `[ImageResponse] async/server component "${resolved?.name || resolved}" is not supported; skipping`,
-        )
-        return null
+        );
+        return null;
       }
 
-      return this.serializeElement(rendered)
-    }
-    catch (err) {
+      return this.serializeElement(rendered);
+    } catch (err) {
       console.error(
         `[ImageResponse] failed to render component "${resolved?.name || resolved?.toString()}":`,
         err,
-      )
-      return null
+      );
+      return null;
     }
   }
 
   private serializeElement(element: any): any {
-    if (typeof element === 'string' || typeof element === 'number')
-      return { type: 'text', value: String(element) }
+    if (typeof element === "string" || typeof element === "number")
+      return { type: "text", value: String(element) };
 
-    if (!element || !element.type)
-      return null
+    if (!element || !element.type) return null;
 
-    const { type, props = {} } = element
+    const { type, props = {} } = element;
 
-    if (typeof type === 'function' || (type && typeof type === 'object' && type.$$typeof))
-      return this.resolveAndInvoke(type, props)
+    if (typeof type === "function" || (type && typeof type === "object" && type.$$typeof))
+      return this.resolveAndInvoke(type, props);
 
-    const children = this.serializeChildren(props.children)
+    const children = this.serializeChildren(props.children);
 
     return {
-      type: 'element',
+      type: "element",
       elementType: type,
       props: this.serializeProps(props),
       children,
-    }
+    };
   }
 
   private serializeChildren(children: any): any[] {
-    if (!children)
-      return []
+    if (!children) return [];
 
     if (Array.isArray(children))
-      return children.map(child => this.serializeElement(child)).filter(Boolean)
+      return children.map((child) => this.serializeElement(child)).filter(Boolean);
 
-    const serialized = this.serializeElement(children)
-    return serialized ? [serialized] : []
+    const serialized = this.serializeElement(children);
+    return serialized ? [serialized] : [];
   }
 
   private serializeProps(props: any): any {
-    const { children, ...rest } = props
-    const serialized: any = {}
+    const { children, ...rest } = props;
+    const serialized: any = {};
 
     for (const [key, value] of Object.entries(rest)) {
-      if (value !== undefined && value !== null)
-        serialized[key] = value
+      if (value !== undefined && value !== null) serialized[key] = value;
     }
 
-    return serialized
+    return serialized;
   }
 }

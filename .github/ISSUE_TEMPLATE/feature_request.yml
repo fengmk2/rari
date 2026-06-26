@@ -1,6 +1,6 @@
 name: Feature Request
 description: Request a new feature or enhancement for rari
-title: '[Feature]: '
+title: "[Feature]: "
 labels: [enhancement, needs-triage]
 assignees: []
 
@@ -125,10 +125,10 @@ body:
       label: Estimated Complexity
       description: How complex do you think this feature would be to implement?
       options:
-        - 'Low (small change, minimal impact)'
-        - 'Medium (moderate change, some impact)'
-        - 'High (significant change, major impact)'
-        - 'Very High (fundamental change, breaking)'
+        - "Low (small change, minimal impact)"
+        - "Medium (moderate change, some impact)"
+        - "High (significant change, major impact)"
+        - "Very High (fundamental change, breaking)"
         - "I'm not sure"
     validations:
       required: true

@@ -22,5 +22,5 @@ export default function ServerDemoLoading() {
         </div>
       </div>
     </div>
-  )
+  );
 }

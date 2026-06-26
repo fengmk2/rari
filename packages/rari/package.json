@@ -1,41 +1,50 @@
 {
   "name": "rari",
-  "type": "module",
   "version": "0.14.12",
   "description": "Runtime Accelerated Rendering Infrastructure (rari)",
-  "author": "Ryan Skinner",
-  "license": "MIT",
+  "keywords": [
+    "deno",
+    "fast",
+    "framework",
+    "full-stack",
+    "performance",
+    "react",
+    "rsc",
+    "rust",
+    "server-components",
+    "ssr",
+    "streaming",
+    "typescript",
+    "v8",
+    "vite",
+    "web-framework",
+    "zero-config"
+  ],
   "homepage": "https://github.com/rari-build/rari#readme",
-  "repository": {
-    "directory": "packages/rari",
-    "type": "git",
-    "url": "git+https://github.com/rari-build/rari.git"
-  },
   "bugs": {
     "url": "https://github.com/rari-build/rari/issues"
   },
-  "keywords": [
-    "react",
-    "server-components",
-    "rsc",
-    "rust",
-    "vite",
-    "framework",
-    "performance",
-    "ssr",
-    "typescript",
-    "deno",
-    "v8",
-    "streaming",
-    "fast",
-    "zero-config",
-    "full-stack",
-    "web-framework"
+  "license": "MIT",
+  "author": "Ryan Skinner",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rari-build/rari.git",
+    "directory": "packages/rari"
+  },
+  "bin": {
+    "rari": "./dist/cli.mjs"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist"
   ],
+  "type": "module",
   "sideEffects": [
     "./dist/runtime/entry-client.mjs",
     "./dist/runtime/rsc-client-runtime.mjs"
   ],
+  "types": "dist/index.d.mts",
   "exports": {
     ".": {
       "browser": "./dist/client.mjs",
@@ -94,18 +103,6 @@
     },
     "./*.mjs": "./dist/*.mjs"
   },
-  "types": "dist/index.d.mts",
-  "bin": {
-    "rari": "./dist/cli.mjs"
-  },
-  "files": [
-    "LICENSE",
-    "README.md",
-    "dist"
-  ],
-  "engines": {
-    "node": ">=22.18.0"
-  },
   "scripts": {
     "build": "pnpm --silent clean && pnpm typecheck && vp pack",
     "clean": "node --eval \"import('node:fs').then(fs => fs.rmSync('dist', { recursive: true, force: true }))\"",
@@ -113,13 +110,23 @@
     "lint:fix": "vp lint --fix",
     "typecheck": "tsgo"
   },
-  "peerDependencies": {
-    "react": "catalog:react",
-    "react-dom": "catalog:react"
-  },
   "dependencies": {
     "lightningcss": "catalog:build",
     "rolldown": "catalog:build"
+  },
+  "devDependencies": {
+    "@rari/deploy": "workspace:*",
+    "@rari/logger": "workspace:*",
+    "@types/node": "catalog:typescript",
+    "@types/react": "catalog:react",
+    "@types/react-dom": "catalog:react",
+    "@typescript/native-preview": "catalog:typescript",
+    "vite": "catalog:build",
+    "vite-plus": "catalog:build"
+  },
+  "peerDependencies": {
+    "react": "catalog:react",
+    "react-dom": "catalog:react"
   },
   "optionalDependencies": {
     "@rari/use-cache": "workspace:*",
@@ -130,13 +137,7 @@
     "rari-win32-arm64": "0.14.12",
     "rari-win32-x64": "0.14.12"
   },
-  "devDependencies": {
-    "@rari/deploy": "workspace:*",
-    "@rari/logger": "workspace:*",
-    "@types/node": "catalog:typescript",
-    "@types/react": "catalog:react",
-    "@types/react-dom": "catalog:react",
-    "@typescript/native-preview": "catalog:typescript",
-    "vite-plus": "catalog:build"
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

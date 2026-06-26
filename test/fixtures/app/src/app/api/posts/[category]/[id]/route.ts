@@ -1,6 +1,6 @@
 export async function GET(
   _request: Request,
-  { params }: { params: { category: string, id: string } },
+  { params }: { params: { category: string; id: string } },
 ) {
   return new Response(
     JSON.stringify({
@@ -10,7 +10,7 @@ export async function GET(
     }),
     {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     },
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import { core } from 'ext:core/mod.js'
+import { core } from "ext:core/mod.js";
 
-const cron = core.loadExtScript('ext:deno_cron/01_cron.ts')
+const cron = core.loadExtScript("ext:deno_cron/01_cron.ts");
 
-globalThis.Deno.cron = cron.cron
+globalThis.Deno.cron = cron.cron;

@@ -1,7 +1,7 @@
-import type { Metadata } from 'rari'
-import Breadcrumbs from '@/components/Breadcrumbs'
-import PageHeader from '@/components/PageHeader'
-import { container } from '@/lib/styles'
+import type { Metadata } from "rari";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import PageHeader from "@/components/PageHeader";
+import { container } from "@/lib/styles";
 
 export default function ApiReferencePage() {
   return (
@@ -36,12 +36,12 @@ export default function ApiReferencePage() {
               <div
                 className="absolute z-0 aspect-2/1 w-16 animate-border-trail opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 style={{
-                  background: 'radial-gradient(ellipse at 100% 50%, #fd7e14 0%, #ff9a3c 40%, transparent 70%)',
-                  offsetAnchor: '100% 50%',
-                  offsetPath: 'border-box',
+                  background:
+                    "radial-gradient(ellipse at 100% 50%, #fd7e14 0%, #ff9a3c 40%, transparent 70%)",
+                  offsetAnchor: "100% 50%",
+                  offsetPath: "border-box",
                 }}
-              >
-              </div>
+              ></div>
             </a>
 
             <a
@@ -65,41 +65,34 @@ export default function ApiReferencePage() {
               <div
                 className="absolute z-0 aspect-2/1 w-16 animate-border-trail opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 style={{
-                  background: 'radial-gradient(ellipse at 100% 50%, #fd7e14 0%, #ff9a3c 40%, transparent 70%)',
-                  offsetAnchor: '100% 50%',
-                  offsetPath: 'border-box',
+                  background:
+                    "radial-gradient(ellipse at 100% 50%, #fd7e14 0%, #ff9a3c 40%, transparent 70%)",
+                  offsetAnchor: "100% 50%",
+                  offsetPath: "border-box",
                 }}
-              >
-              </div>
+              ></div>
             </a>
 
             <div className="block p-6 bg-[#161b22] border border-[#30363d] rounded-lg opacity-50">
-              <h2 className="text-xl font-semibold text-[#f0f6fc] mb-2">
-                Configuration
-              </h2>
-              <p className="text-gray-300">
-                Vite plugin options and runtime configuration.
-              </p>
+              <h2 className="text-xl font-semibold text-[#f0f6fc] mb-2">Configuration</h2>
+              <p className="text-gray-300">Vite plugin options and runtime configuration.</p>
               <span className="text-xs text-gray-400 mt-2 inline-block">Coming soon</span>
             </div>
 
             <div className="block p-6 bg-[#161b22] border border-[#30363d] rounded-lg opacity-50">
-              <h2 className="text-xl font-semibold text-[#f0f6fc] mb-2">
-                Types
-              </h2>
-              <p className="text-gray-300">
-                TypeScript type definitions and interfaces.
-              </p>
+              <h2 className="text-xl font-semibold text-[#f0f6fc] mb-2">Types</h2>
+              <p className="text-gray-300">TypeScript type definitions and interfaces.</p>
               <span className="text-xs text-gray-400 mt-2 inline-block">Coming soon</span>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export const metadata: Metadata = {
-  title: 'API Reference / rari Docs',
-  description: 'Complete API documentation for rari framework components, functions, and utilities.',
-}
+  title: "API Reference / rari Docs",
+  description:
+    "Complete API documentation for rari framework components, functions, and utilities.",
+};

@@ -1,360 +1,368 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
-import process from 'node:process'
-import { logError, logInfo, logSuccess, logWarn } from '@rari/logger'
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import process from "node:process";
+import { logError, logInfo, logSuccess, logWarn } from "@rari/logger";
 
-export { logError, logInfo, logSuccess, logWarn }
+export { logError, logInfo, logSuccess, logWarn };
 
-export const MIN_SUPPORTED_NODE_MAJOR = 22
+export const MIN_SUPPORTED_NODE_MAJOR = 22;
 
-const AND_SPLIT_REGEX = /\s+(?:&&\s+)?/
-const LOWER_BOUND_REGEX = /^>=?\s*(\d+)/
-const UPPER_BOUND_REGEX = /^<=?\s*(\d+)/
-const UPPER_BOUND_ONLY_REGEX = /^<=?\s*\d+/
-const SEMVER_RANGE_REGEX = /^>=?\s*(\d+)\.(\d+)\.(\d+)/
-const EXACT_SEMVER_REGEX = /^=?\s*(\d+)\.(\d+)\.(\d+)/
-const CARET_RANGE_REGEX = /^\^\s*(\d+)\.(\d+)\.(\d+)/
-const TILDE_RANGE_REGEX = /^~\s*(\d+)\.(\d+)\.(\d+)/
-const MAJOR_MINOR_REGEX = /^(?:>=?|<=?|[=~^])?\s*(\d+)\.(\d+)/
-const WILDCARD_REGEX = /^(\d+)\.(?:x|\*)/i
-const MAJOR_ONLY_REGEX = /^(?:>=?|[=~^])\s*(\d+)(?:\s|$)/
-const NUMBER_ONLY_REGEX = /^(\d+)$/
+const AND_SPLIT_REGEX = /\s+(?:&&\s+)?/;
+const LOWER_BOUND_REGEX = /^>=?\s*(\d+)/;
+const UPPER_BOUND_REGEX = /^<=?\s*(\d+)/;
+const UPPER_BOUND_ONLY_REGEX = /^<=?\s*\d+/;
+const SEMVER_RANGE_REGEX = /^>=?\s*(\d+)\.(\d+)\.(\d+)/;
+const EXACT_SEMVER_REGEX = /^=?\s*(\d+)\.(\d+)\.(\d+)/;
+const CARET_RANGE_REGEX = /^\^\s*(\d+)\.(\d+)\.(\d+)/;
+const TILDE_RANGE_REGEX = /^~\s*(\d+)\.(\d+)\.(\d+)/;
+const MAJOR_MINOR_REGEX = /^(?:>=?|<=?|[=~^])?\s*(\d+)\.(\d+)/;
+const WILDCARD_REGEX = /^(\d+)\.(?:x|\*)/i;
+const MAJOR_ONLY_REGEX = /^(?:>=?|[=~^])\s*(\d+)(?:\s|$)/;
+const NUMBER_ONLY_REGEX = /^(\d+)$/;
 
-export function isNodeVersionSufficient(versionRange: string, minMajor: number = MIN_SUPPORTED_NODE_MAJOR): boolean {
-  const cleaned = versionRange.trim()
+export function isNodeVersionSufficient(
+  versionRange: string,
+  minMajor: number = MIN_SUPPORTED_NODE_MAJOR,
+): boolean {
+  const cleaned = versionRange.trim();
 
-  if (cleaned.includes('||')) {
-    const orParts = cleaned.split('||').map(part => part.trim())
-    return orParts.some(part => isNodeVersionSufficient(part, minMajor))
+  if (cleaned.includes("||")) {
+    const orParts = cleaned.split("||").map((part) => part.trim());
+    return orParts.some((part) => isNodeVersionSufficient(part, minMajor));
   }
 
-  const andParts = cleaned.split(AND_SPLIT_REGEX).filter(part => part && part !== '&&')
+  const andParts = cleaned.split(AND_SPLIT_REGEX).filter((part) => part && part !== "&&");
   if (andParts.length > 1) {
     for (const part of andParts) {
-      const lowerBound = extractLowerBound(part)
-      if (lowerBound !== null && lowerBound >= minMajor)
-        return true
+      const lowerBound = extractLowerBound(part);
+      if (lowerBound !== null && lowerBound >= minMajor) return true;
     }
 
-    return andParts.every(part => couldIncludeVersion(part, minMajor))
+    return andParts.every((part) => couldIncludeVersion(part, minMajor));
   }
 
-  return extractMajorAndCompare(cleaned, minMajor)
+  return extractMajorAndCompare(cleaned, minMajor);
 }
 
 function extractLowerBound(range: string): number | null {
-  const match = range.match(LOWER_BOUND_REGEX)
-  if (match)
-    return Number.parseInt(match[1], 10)
+  const match = range.match(LOWER_BOUND_REGEX);
+  if (match) return Number.parseInt(match[1], 10);
 
-  return null
+  return null;
 }
 
 function couldIncludeVersion(range: string, targetMajor: number): boolean {
-  let match: RegExpMatchArray | null = null
+  let match: RegExpMatchArray | null = null;
 
-  match = range.match(UPPER_BOUND_REGEX)
+  match = range.match(UPPER_BOUND_REGEX);
   if (match) {
-    const upperMajor = Number.parseInt(match[1], 10)
-    return targetMajor <= upperMajor
+    const upperMajor = Number.parseInt(match[1], 10);
+    return targetMajor <= upperMajor;
   }
 
-  return extractMajorAndCompare(range, targetMajor)
+  return extractMajorAndCompare(range, targetMajor);
 }
 
 function extractMajorAndCompare(versionRange: string, minMajor: number): boolean {
-  let match: RegExpMatchArray | null = null
+  let match: RegExpMatchArray | null = null;
 
-  if (UPPER_BOUND_ONLY_REGEX.test(versionRange))
-    return false
+  if (UPPER_BOUND_ONLY_REGEX.test(versionRange)) return false;
 
-  match = versionRange.match(SEMVER_RANGE_REGEX)
+  match = versionRange.match(SEMVER_RANGE_REGEX);
   if (match) {
-    const majorNum = Number.parseInt(match[1], 10)
-    return majorNum >= minMajor
+    const majorNum = Number.parseInt(match[1], 10);
+    return majorNum >= minMajor;
   }
 
-  match = versionRange.match(EXACT_SEMVER_REGEX)
+  match = versionRange.match(EXACT_SEMVER_REGEX);
   if (match) {
-    const majorNum = Number.parseInt(match[1], 10)
-    return majorNum >= minMajor
+    const majorNum = Number.parseInt(match[1], 10);
+    return majorNum >= minMajor;
   }
 
-  match = versionRange.match(CARET_RANGE_REGEX)
+  match = versionRange.match(CARET_RANGE_REGEX);
   if (match) {
-    const majorNum = Number.parseInt(match[1], 10)
-    return majorNum >= minMajor
+    const majorNum = Number.parseInt(match[1], 10);
+    return majorNum >= minMajor;
   }
 
-  match = versionRange.match(TILDE_RANGE_REGEX)
+  match = versionRange.match(TILDE_RANGE_REGEX);
   if (match) {
-    const majorNum = Number.parseInt(match[1], 10)
-    return majorNum >= minMajor
+    const majorNum = Number.parseInt(match[1], 10);
+    return majorNum >= minMajor;
   }
 
-  match = versionRange.match(MAJOR_MINOR_REGEX)
+  match = versionRange.match(MAJOR_MINOR_REGEX);
   if (match) {
-    const majorNum = Number.parseInt(match[1], 10)
-    return majorNum >= minMajor
+    const majorNum = Number.parseInt(match[1], 10);
+    return majorNum >= minMajor;
   }
 
-  match = versionRange.match(WILDCARD_REGEX)
+  match = versionRange.match(WILDCARD_REGEX);
   if (match) {
-    const majorNum = Number.parseInt(match[1], 10)
-    return majorNum >= minMajor
+    const majorNum = Number.parseInt(match[1], 10);
+    return majorNum >= minMajor;
   }
 
-  match = versionRange.match(MAJOR_ONLY_REGEX)
+  match = versionRange.match(MAJOR_ONLY_REGEX);
   if (match) {
-    const majorNum = Number.parseInt(match[1], 10)
-    return majorNum >= minMajor
+    const majorNum = Number.parseInt(match[1], 10);
+    return majorNum >= minMajor;
   }
 
-  match = versionRange.match(NUMBER_ONLY_REGEX)
+  match = versionRange.match(NUMBER_ONLY_REGEX);
   if (match) {
-    const majorNum = Number.parseInt(match[1], 10)
-    return majorNum >= minMajor
+    const majorNum = Number.parseInt(match[1], 10);
+    return majorNum >= minMajor;
   }
 
-  return false
+  return false;
 }
 
-export const MIN_NODE_VERSION = '>=22.18.0'
+export const MIN_NODE_VERSION = ">=22.18.0";
 
-export function ensureMinimumNodeEngine(packageJson: any, minVersion: string = MIN_NODE_VERSION): boolean {
-  packageJson.engines = packageJson.engines || {}
+export function ensureMinimumNodeEngine(
+  packageJson: any,
+  minVersion: string = MIN_NODE_VERSION,
+): boolean {
+  packageJson.engines = packageJson.engines || {};
 
   if (packageJson.engines.node) {
     if (!satisfiesMinimumVersion(packageJson.engines.node, minVersion)) {
-      logWarn(`Current engines.node value "${packageJson.engines.node}" may not meet the required minimum of ${minVersion}`)
-      logWarn(`Updating to ${minVersion} for deployment compatibility`)
-      packageJson.engines.node = minVersion
-      return true
+      logWarn(
+        `Current engines.node value "${packageJson.engines.node}" may not meet the required minimum of ${minVersion}`,
+      );
+      logWarn(`Updating to ${minVersion} for deployment compatibility`);
+      packageJson.engines.node = minVersion;
+      return true;
     }
-  }
-  else {
-    packageJson.engines.node = minVersion
-    return true
+  } else {
+    packageJson.engines.node = minVersion;
+    return true;
   }
 
-  return false
+  return false;
 }
 
 function satisfiesMinimumVersion(existingRange: string, requiredRange: string): boolean {
-  const existingMin = extractMinimumVersion(existingRange)
-  const requiredMin = extractMinimumVersion(requiredRange)
+  const existingMin = extractMinimumVersion(existingRange);
+  const requiredMin = extractMinimumVersion(requiredRange);
 
-  if (!existingMin || !requiredMin)
-    return false
+  if (!existingMin || !requiredMin) return false;
 
-  return compareVersions(existingMin, requiredMin) >= 0
+  return compareVersions(existingMin, requiredMin) >= 0;
 }
 
-function extractMinimumVersion(range: string): { major: number, minor: number, patch: number } | null {
-  const cleaned = range.trim()
+function extractMinimumVersion(
+  range: string,
+): { major: number; minor: number; patch: number } | null {
+  const cleaned = range.trim();
 
-  const isNonNull = <T>(v: T | null): v is NonNullable<T> => v !== null
+  const isNonNull = <T>(v: T | null): v is NonNullable<T> => v !== null;
 
-  if (cleaned.includes('||')) {
-    const orParts = cleaned.split('||').map(part => part.trim())
-    const versions = orParts.map(part => extractMinimumVersion(part)).filter(isNonNull)
-    if (versions.length === 0)
-      return null
+  if (cleaned.includes("||")) {
+    const orParts = cleaned.split("||").map((part) => part.trim());
+    const versions = orParts.map((part) => extractMinimumVersion(part)).filter(isNonNull);
+    if (versions.length === 0) return null;
 
-    return versions.reduce((min, curr) => compareVersions(curr, min) < 0 ? curr : min)
+    return versions.reduce((min, curr) => (compareVersions(curr, min) < 0 ? curr : min));
   }
 
-  const andParts = cleaned.split(AND_SPLIT_REGEX).filter(part => part && part !== '&&')
+  const andParts = cleaned.split(AND_SPLIT_REGEX).filter((part) => part && part !== "&&");
   if (andParts.length > 1) {
     const lowerBounds = andParts
-      .filter(part => LOWER_BOUND_REGEX.test(part))
-      .map(part => extractMinimumVersion(part))
-      .filter(isNonNull)
+      .filter((part) => LOWER_BOUND_REGEX.test(part))
+      .map((part) => extractMinimumVersion(part))
+      .filter(isNonNull);
 
-    if (lowerBounds.length === 0)
-      return null
+    if (lowerBounds.length === 0) return null;
 
-    return lowerBounds.reduce((max, curr) => compareVersions(curr, max) > 0 ? curr : max)
+    return lowerBounds.reduce((max, curr) => (compareVersions(curr, max) > 0 ? curr : max));
   }
 
-  let match: RegExpMatchArray | null = null
+  let match: RegExpMatchArray | null = null;
 
-  match = cleaned.match(SEMVER_RANGE_REGEX)
+  match = cleaned.match(SEMVER_RANGE_REGEX);
   if (match) {
     return {
       major: Number.parseInt(match[1], 10),
       minor: Number.parseInt(match[2], 10),
       patch: Number.parseInt(match[3], 10),
-    }
+    };
   }
 
-  match = cleaned.match(EXACT_SEMVER_REGEX)
+  match = cleaned.match(EXACT_SEMVER_REGEX);
   if (match) {
     return {
       major: Number.parseInt(match[1], 10),
       minor: Number.parseInt(match[2], 10),
       patch: Number.parseInt(match[3], 10),
-    }
+    };
   }
 
-  match = cleaned.match(CARET_RANGE_REGEX)
+  match = cleaned.match(CARET_RANGE_REGEX);
   if (match) {
     return {
       major: Number.parseInt(match[1], 10),
       minor: Number.parseInt(match[2], 10),
       patch: Number.parseInt(match[3], 10),
-    }
+    };
   }
 
-  match = cleaned.match(TILDE_RANGE_REGEX)
+  match = cleaned.match(TILDE_RANGE_REGEX);
   if (match) {
     return {
       major: Number.parseInt(match[1], 10),
       minor: Number.parseInt(match[2], 10),
       patch: Number.parseInt(match[3], 10),
-    }
+    };
   }
 
-  match = cleaned.match(MAJOR_MINOR_REGEX)
+  match = cleaned.match(MAJOR_MINOR_REGEX);
   if (match) {
     return {
       major: Number.parseInt(match[1], 10),
       minor: Number.parseInt(match[2], 10),
       patch: 0,
-    }
+    };
   }
 
-  match = cleaned.match(WILDCARD_REGEX)
+  match = cleaned.match(WILDCARD_REGEX);
   if (match) {
     return {
       major: Number.parseInt(match[1], 10),
       minor: 0,
       patch: 0,
-    }
+    };
   }
 
-  match = cleaned.match(MAJOR_ONLY_REGEX)
+  match = cleaned.match(MAJOR_ONLY_REGEX);
   if (match) {
     return {
       major: Number.parseInt(match[1], 10),
       minor: 0,
       patch: 0,
-    }
+    };
   }
 
-  match = cleaned.match(NUMBER_ONLY_REGEX)
+  match = cleaned.match(NUMBER_ONLY_REGEX);
   if (match) {
     return {
       major: Number.parseInt(match[1], 10),
       minor: 0,
       patch: 0,
-    }
+    };
   }
 
-  return null
+  return null;
 }
 
-function compareVersions(a: { major: number, minor: number, patch: number }, b: { major: number, minor: number, patch: number }): number {
-  if (a.major !== b.major)
-    return a.major - b.major
-  if (a.minor !== b.minor)
-    return a.minor - b.minor
+function compareVersions(
+  a: { major: number; minor: number; patch: number },
+  b: { major: number; minor: number; patch: number },
+): number {
+  if (a.major !== b.major) return a.major - b.major;
+  if (a.minor !== b.minor) return a.minor - b.minor;
 
-  return a.patch - b.patch
+  return a.patch - b.patch;
 }
 
 export function getRariVersion(cwd: string = process.cwd()): string {
-  const rariPackageJsonPath = join(cwd, 'node_modules/rari/package.json')
+  const rariPackageJsonPath = join(cwd, "node_modules/rari/package.json");
 
   if (!existsSync(rariPackageJsonPath)) {
-    logError('rari is not installed. Please run "npm install rari" first.')
-    process.exit(1)
+    logError('rari is not installed. Please run "npm install rari" first.');
+    process.exit(1);
   }
 
   try {
-    const packageJson = JSON.parse(readFileSync(rariPackageJsonPath, 'utf-8'))
+    const packageJson = JSON.parse(readFileSync(rariPackageJsonPath, "utf-8"));
     if (packageJson.version) {
-      return `^${packageJson.version}`
+      return `^${packageJson.version}`;
     }
 
-    logError('Could not determine rari version from package.json')
-    process.exit(1)
-  }
-  catch (error) {
-    logError(`Failed to read rari package.json: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    process.exit(1)
+    logError("Could not determine rari version from package.json");
+    process.exit(1);
+  } catch (error) {
+    logError(
+      `Failed to read rari package.json: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+    process.exit(1);
   }
 }
 
 interface ProviderConfig {
-  providerName: string
-  deployScript: string
-  startScript?: string
-  dependency?: string
+  providerName: string;
+  deployScript: string;
+  startScript?: string;
+  dependency?: string;
 }
 
-export type { ProviderConfig }
+export type { ProviderConfig };
 
 export function updatePackageJsonForProvider(cwd: string, config: ProviderConfig) {
-  const packageJsonPath = join(cwd, 'package.json')
+  const packageJsonPath = join(cwd, "package.json");
   if (!existsSync(packageJsonPath)) {
-    logError('No package.json found. Please run this command from your project root.')
-    process.exit(1)
+    logError("No package.json found. Please run this command from your project root.");
+    process.exit(1);
   }
 
   try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
 
-    packageJson.scripts = packageJson.scripts || {}
+    packageJson.scripts = packageJson.scripts || {};
 
-    const newStart = config.startScript || 'rari start'
-    if (packageJson.scripts.start && packageJson.scripts.start !== newStart && !packageJson.scripts['start:original']) {
-      logWarn(`Existing start script found: "${packageJson.scripts.start}"`)
-      logWarn(`Backing up to start:original and replacing with "${newStart}"`)
-      packageJson.scripts['start:original'] = packageJson.scripts.start
+    const newStart = config.startScript || "rari start";
+    if (
+      packageJson.scripts.start &&
+      packageJson.scripts.start !== newStart &&
+      !packageJson.scripts["start:original"]
+    ) {
+      logWarn(`Existing start script found: "${packageJson.scripts.start}"`);
+      logWarn(`Backing up to start:original and replacing with "${newStart}"`);
+      packageJson.scripts["start:original"] = packageJson.scripts.start;
     }
 
-    packageJson.scripts.start = newStart
-    packageJson.scripts['start:local'] = 'rari start'
-    packageJson.scripts[`deploy:${config.providerName.toLowerCase()}`] = config.deployScript
+    packageJson.scripts.start = newStart;
+    packageJson.scripts["start:local"] = "rari start";
+    packageJson.scripts[`deploy:${config.providerName.toLowerCase()}`] = config.deployScript;
 
-    ensureMinimumNodeEngine(packageJson)
+    ensureMinimumNodeEngine(packageJson);
 
     if (!packageJson.dependencies || !packageJson.dependencies.rari) {
-      logInfo('Adding rari dependency...')
-      packageJson.dependencies = packageJson.dependencies || {}
-      packageJson.dependencies.rari = config.dependency || getRariVersion(cwd)
+      logInfo("Adding rari dependency...");
+      packageJson.dependencies = packageJson.dependencies || {};
+      packageJson.dependencies.rari = config.dependency || getRariVersion(cwd);
     }
 
-    writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`)
-    logSuccess(`Updated package.json for ${config.providerName} deployment`)
-  }
-  catch (error) {
-    logError(`Failed to update package.json: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    process.exit(1)
+    writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+    logSuccess(`Updated package.json for ${config.providerName} deployment`);
+  } catch (error) {
+    logError(
+      `Failed to update package.json: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+    process.exit(1);
   }
 }
 
-export function updateGitignoreForProvider(cwd: string, providerName: string, providerFolder: string) {
-  const gitignorePath = join(cwd, '.gitignore')
-  const providerGitignoreEntries = [
-    '',
-    `# ${providerName}`,
-    `${providerFolder}/`,
-    '',
-  ].join('\n')
+export function updateGitignoreForProvider(
+  cwd: string,
+  providerName: string,
+  providerFolder: string,
+) {
+  const gitignorePath = join(cwd, ".gitignore");
+  const providerGitignoreEntries = ["", `# ${providerName}`, `${providerFolder}/`, ""].join("\n");
 
   if (existsSync(gitignorePath)) {
-    const gitignoreContent = readFileSync(gitignorePath, 'utf-8')
-    const lines = gitignoreContent.split('\n').map(line => line.trim())
-    const hasExactMatch = lines.includes(`${providerFolder}/`) || lines.includes(providerFolder)
+    const gitignoreContent = readFileSync(gitignorePath, "utf-8");
+    const lines = gitignoreContent.split("\n").map((line) => line.trim());
+    const hasExactMatch = lines.includes(`${providerFolder}/`) || lines.includes(providerFolder);
 
     if (!hasExactMatch) {
-      writeFileSync(gitignorePath, gitignoreContent + providerGitignoreEntries)
-      logSuccess(`Updated .gitignore with ${providerName} entries`)
+      writeFileSync(gitignorePath, gitignoreContent + providerGitignoreEntries);
+      logSuccess(`Updated .gitignore with ${providerName} entries`);
     }
-  }
-  else {
+  } else {
     const defaultGitignore = `# Dependencies
 node_modules
 .pnpm-store
@@ -389,37 +397,38 @@ Thumbs.db
 # Temporary files
 .tmp
 tmp
-`
-    writeFileSync(gitignorePath, defaultGitignore)
-    logSuccess(`Created .gitignore with ${providerName} entries`)
+`;
+    writeFileSync(gitignorePath, defaultGitignore);
+    logSuccess(`Created .gitignore with ${providerName} entries`);
   }
 }
 
 export function createOrBackupConfigFile(cwd: string, filename: string, content: string) {
-  const configPath = join(cwd, filename)
+  const configPath = join(cwd, filename);
 
   try {
     if (existsSync(configPath)) {
-      const existingConfig = readFileSync(configPath, 'utf-8')
+      const existingConfig = readFileSync(configPath, "utf-8");
 
-      let backupFilename = `${filename}.backup`
-      let backupPath = join(cwd, backupFilename)
+      let backupFilename = `${filename}.backup`;
+      let backupPath = join(cwd, backupFilename);
 
       if (existsSync(backupPath)) {
-        const timestamp = Date.now()
-        backupFilename = `${filename}.backup.${timestamp}`
-        backupPath = join(cwd, backupFilename)
+        const timestamp = Date.now();
+        backupFilename = `${filename}.backup.${timestamp}`;
+        backupPath = join(cwd, backupFilename);
       }
 
-      logWarn(`${filename} already exists, backing up to ${backupFilename}`)
-      writeFileSync(backupPath, existingConfig, { flag: 'wx' })
+      logWarn(`${filename} already exists, backing up to ${backupFilename}`);
+      writeFileSync(backupPath, existingConfig, { flag: "wx" });
     }
 
-    writeFileSync(configPath, content)
-    logSuccess(`Created ${filename} configuration`)
-  }
-  catch (error) {
-    logError(`Failed to create or backup ${filename}: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    process.exit(1)
+    writeFileSync(configPath, content);
+    logSuccess(`Created ${filename} configuration`);
+  } catch (error) {
+    logError(
+      `Failed to create or backup ${filename}: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+    process.exit(1);
   }
 }

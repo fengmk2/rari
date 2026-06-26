@@ -1,8 +1,8 @@
-import { getTodos } from '@/actions/todo-actions'
-import TodoApp from '@/components/TodoApp'
+import { getTodos } from "@/actions/todo-actions";
+import TodoApp from "@/components/TodoApp";
 
 export default async function ActionsPage() {
-  const initialTodos = await getTodos()
+  const initialTodos = await getTodos();
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -11,5 +11,5 @@ export default async function ActionsPage() {
 
       <TodoApp initialTodos={initialTodos} />
     </div>
-  )
+  );
 }

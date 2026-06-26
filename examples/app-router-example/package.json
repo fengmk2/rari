@@ -1,7 +1,7 @@
 {
   "name": "app-router-example",
-  "type": "module",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "rari dev",
     "build": "rari build",
@@ -19,6 +19,7 @@
     "@types/react-dom": "catalog:react",
     "@typescript/native-preview": "catalog:typescript",
     "tailwindcss": "catalog:tailwind",
-    "vite": "catalog:build"
+    "vite": "catalog:build",
+    "vite-plus": "catalog:build"
   }
 }

@@ -1,22 +1,18 @@
-import { rari as _rari } from './vite/index'
-import './fetch-cache'
+import { rari as _rari } from "./vite/index";
+import "./fetch-cache";
 
-export type {
-  ApiRouteHandlers,
-  RouteContext,
-  RouteHandler,
-} from './api-routes'
+export type { ApiRouteHandlers, RouteContext, RouteHandler } from "./api-routes";
 
-export { ApiResponse } from './api-routes'
+export { ApiResponse } from "./api-routes";
 
-export { createHttpRuntimeClient, HttpRuntimeClient } from './http-runtime-client'
-export type { RuntimeClient } from './http-runtime-client'
+export { createHttpRuntimeClient, HttpRuntimeClient } from "./http-runtime-client";
+export type { RuntimeClient } from "./http-runtime-client";
 
-export type Request = globalThis.Request
-export type Response = globalThis.Response
+export type Request = globalThis.Request;
+export type Response = globalThis.Response;
 
-export { RariRequest } from './proxy/RariRequest'
-export { RariResponse } from './proxy/RariResponse'
+export { RariRequest } from "./proxy/RariRequest";
+export { RariResponse } from "./proxy/RariResponse";
 
 export type {
   CookieOptions,
@@ -29,11 +25,11 @@ export type {
   RariURL,
   RequestCookies,
   ResponseCookies,
-} from './proxy/types'
+} from "./proxy/types";
 
-export { rariProxy } from './proxy/vite-plugin'
+export { rariProxy } from "./proxy/vite-plugin";
 
-export type { ProxyPluginOptions } from './proxy/vite-plugin'
+export type { ProxyPluginOptions } from "./proxy/vite-plugin";
 
 export {
   clearPropsCache,
@@ -43,17 +39,15 @@ export {
   extractServerPropsWithCache,
   extractStaticParams,
   hasServerSideDataFetching,
-} from './router/props-extractor'
+} from "./router/props-extractor";
 
 export type {
   MetadataResult,
   ServerSidePropsResult,
   StaticParamsResult,
-} from './router/props-extractor'
+} from "./router/props-extractor";
 
-export {
-  generateAppRouteManifest,
-} from './router/routes'
+export { generateAppRouteManifest } from "./router/routes";
 
 export type {
   AppRouteEntry,
@@ -71,13 +65,20 @@ export type {
   RouteSegment,
   RouteSegmentType,
   TemplateEntry,
-} from './router/types'
+} from "./router/types";
 
-export type { Metadata } from './router/types'
+export type { Metadata } from "./router/types";
 
-export { rariRouter } from './router/vite-plugin'
+export { rariRouter } from "./router/vite-plugin";
 
-export type { Robots, RobotsRule, Sitemap, SitemapEntry, SitemapImage, SitemapVideo } from './types/metadata-route'
+export type {
+  Robots,
+  RobotsRule,
+  Sitemap,
+  SitemapEntry,
+  SitemapImage,
+  SitemapVideo,
+} from "./types/metadata-route";
 
 export type {
   ServerCacheConfig,
@@ -86,12 +87,12 @@ export type {
   ServerConfig,
   ServerCSPConfig,
   ServerUseCacheConfig,
-} from './types/server-config'
+} from "./types/server-config";
 
-export { defineRariConfig, defineRariOptions } from './vite/index'
+export { defineRariConfig, defineRariOptions } from "./vite/index";
 
-export type { RariOptions, RouterPluginOptions } from './vite/index'
+export type { RariOptions, RouterPluginOptions } from "./vite/index";
 
 export function rari(options?: Parameters<typeof _rari>[0]): any[] {
-  return _rari(options)
+  return _rari(options);
 }

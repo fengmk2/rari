@@ -1,7 +1,4 @@
-export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } },
-) {
+export async function GET(_request: Request, { params }: { params: { id: string } }) {
   return new Response(
     JSON.stringify({
       id: params.id,
@@ -11,17 +8,14 @@ export async function GET(
     {
       status: 200,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     },
-  )
+  );
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } },
-) {
-  const body = await request.json()
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
+  const body = await request.json();
   return new Response(
     JSON.stringify({
       id: params.id,
@@ -31,16 +25,13 @@ export async function PUT(
     {
       status: 200,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     },
-  )
+  );
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } },
-) {
+export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
   return new Response(
     JSON.stringify({
       message: `User ${params.id} deleted`,
@@ -49,8 +40,8 @@ export async function DELETE(
     {
       status: 200,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     },
-  )
+  );
 }

@@ -1,223 +1,246 @@
-import type { AppRouteManifest, RouteSegment, TemplateEntry } from '@rari/router/types'
-import { createRouteInfo, extractPathname, findLayoutChain, findTemplateChain, isExternalUrl, matchRouteParams, normalizePath, parseRoutePath } from '@rari/router/navigation'
-import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test'
+import type { AppRouteManifest, RouteSegment, TemplateEntry } from "@rari/router/types";
+import {
+  createRouteInfo,
+  extractPathname,
+  findLayoutChain,
+  findTemplateChain,
+  isExternalUrl,
+  matchRouteParams,
+  normalizePath,
+  parseRoutePath,
+} from "@rari/router/navigation";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 
-describe('parseRoutePath', () => {
-  it('should parse a simple path', () => {
-    expect(parseRoutePath('/about')).toEqual(['about'])
-  })
+describe("parseRoutePath", () => {
+  it("should parse a simple path", () => {
+    expect(parseRoutePath("/about")).toEqual(["about"]);
+  });
 
-  it('should parse a nested path', () => {
-    expect(parseRoutePath('/blog/post/123')).toEqual(['blog', 'post', '123'])
-  })
+  it("should parse a nested path", () => {
+    expect(parseRoutePath("/blog/post/123")).toEqual(["blog", "post", "123"]);
+  });
 
-  it('should handle root path', () => {
-    expect(parseRoutePath('/')).toEqual([])
-  })
+  it("should handle root path", () => {
+    expect(parseRoutePath("/")).toEqual([]);
+  });
 
-  it('should handle empty string', () => {
-    expect(parseRoutePath('')).toEqual([])
-  })
+  it("should handle empty string", () => {
+    expect(parseRoutePath("")).toEqual([]);
+  });
 
-  it('should strip leading and trailing slashes', () => {
-    expect(parseRoutePath('//about//')).toEqual(['about'])
-  })
+  it("should strip leading and trailing slashes", () => {
+    expect(parseRoutePath("//about//")).toEqual(["about"]);
+  });
 
-  it('should handle multiple slashes', () => {
-    expect(parseRoutePath('///blog///post///')).toEqual(['blog', '', '', 'post'])
-  })
-})
+  it("should handle multiple slashes", () => {
+    expect(parseRoutePath("///blog///post///")).toEqual(["blog", "", "", "post"]);
+  });
+});
 
-describe('normalizePath', () => {
-  it('should normalize a simple path', () => {
-    expect(normalizePath('/about')).toBe('/about')
-  })
+describe("normalizePath", () => {
+  it("should normalize a simple path", () => {
+    expect(normalizePath("/about")).toBe("/about");
+  });
 
-  it('should remove trailing slashes', () => {
-    expect(normalizePath('/about/')).toBe('/about')
-    expect(normalizePath('/about///')).toBe('/about')
-  })
+  it("should remove trailing slashes", () => {
+    expect(normalizePath("/about/")).toBe("/about");
+    expect(normalizePath("/about///")).toBe("/about");
+  });
 
-  it('should handle root path', () => {
-    expect(normalizePath('/')).toBe('/')
-  })
+  it("should handle root path", () => {
+    expect(normalizePath("/")).toBe("/");
+  });
 
-  it('should add leading slash if missing', () => {
-    expect(normalizePath('about')).toBe('/about')
-  })
+  it("should add leading slash if missing", () => {
+    expect(normalizePath("about")).toBe("/about");
+  });
 
-  it('should handle empty string', () => {
-    expect(normalizePath('')).toBe('/')
-  })
+  it("should handle empty string", () => {
+    expect(normalizePath("")).toBe("/");
+  });
 
-  it('should preserve nested paths', () => {
-    expect(normalizePath('/blog/post/123/')).toBe('/blog/post/123')
-  })
-})
+  it("should preserve nested paths", () => {
+    expect(normalizePath("/blog/post/123/")).toBe("/blog/post/123");
+  });
+});
 
-describe('matchRouteParams', () => {
-  it('should match static routes', () => {
+describe("matchRouteParams", () => {
+  it("should match static routes", () => {
+    const segments: RouteSegment[] = [{ type: "static", value: "about" }];
+    const params = matchRouteParams("/about", segments, "/about");
+    expect(params).toEqual({});
+  });
+
+  it("should return null for non-matching static routes", () => {
+    const segments: RouteSegment[] = [{ type: "static", value: "about" }];
+    const params = matchRouteParams("/about", segments, "/contact");
+    expect(params).toBeNull();
+  });
+
+  it("should match dynamic routes", () => {
     const segments: RouteSegment[] = [
-      { type: 'static', value: 'about' },
-    ]
-    const params = matchRouteParams('/about', segments, '/about')
-    expect(params).toEqual({})
-  })
+      { type: "static", value: "blog" },
+      { type: "dynamic", value: "[id]", param: "id" },
+    ];
+    const params = matchRouteParams("/blog/[id]", segments, "/blog/123");
+    expect(params).toEqual({ id: "123" });
+  });
 
-  it('should return null for non-matching static routes', () => {
+  it("should match multiple dynamic segments", () => {
     const segments: RouteSegment[] = [
-      { type: 'static', value: 'about' },
-    ]
-    const params = matchRouteParams('/about', segments, '/contact')
-    expect(params).toBeNull()
-  })
+      { type: "static", value: "blog" },
+      { type: "dynamic", value: "[category]", param: "category" },
+      { type: "dynamic", value: "[id]", param: "id" },
+    ];
+    const params = matchRouteParams("/blog/[category]/[id]", segments, "/blog/tech/123");
+    expect(params).toEqual({ category: "tech", id: "123" });
+  });
 
-  it('should match dynamic routes', () => {
+  it("should match catch-all routes", () => {
     const segments: RouteSegment[] = [
-      { type: 'static', value: 'blog' },
-      { type: 'dynamic', value: '[id]', param: 'id' },
-    ]
-    const params = matchRouteParams('/blog/[id]', segments, '/blog/123')
-    expect(params).toEqual({ id: '123' })
-  })
+      { type: "static", value: "docs" },
+      { type: "catch-all", value: "[...slug]", param: "slug" },
+    ];
+    const params = matchRouteParams("/docs/[...slug]", segments, "/docs/api/reference/guide");
+    expect(params).toEqual({ slug: ["api", "reference", "guide"] });
+  });
 
-  it('should match multiple dynamic segments', () => {
+  it("should match optional catch-all with segments", () => {
     const segments: RouteSegment[] = [
-      { type: 'static', value: 'blog' },
-      { type: 'dynamic', value: '[category]', param: 'category' },
-      { type: 'dynamic', value: '[id]', param: 'id' },
-    ]
-    const params = matchRouteParams('/blog/[category]/[id]', segments, '/blog/tech/123')
-    expect(params).toEqual({ category: 'tech', id: '123' })
-  })
+      { type: "static", value: "docs" },
+      { type: "optional-catch-all", value: "[[...slug]]", param: "slug" },
+    ];
+    const params = matchRouteParams("/docs/[[...slug]]", segments, "/docs/api/guide");
+    expect(params).toEqual({ slug: ["api", "guide"] });
+  });
 
-  it('should match catch-all routes', () => {
+  it("should match optional catch-all without segments", () => {
     const segments: RouteSegment[] = [
-      { type: 'static', value: 'docs' },
-      { type: 'catch-all', value: '[...slug]', param: 'slug' },
-    ]
-    const params = matchRouteParams('/docs/[...slug]', segments, '/docs/api/reference/guide')
-    expect(params).toEqual({ slug: ['api', 'reference', 'guide'] })
-  })
+      { type: "static", value: "docs" },
+      { type: "optional-catch-all", value: "[[...slug]]", param: "slug" },
+    ];
+    const params = matchRouteParams("/docs/[[...slug]]", segments, "/docs");
+    expect(params).toEqual({ slug: [] });
+  });
 
-  it('should match optional catch-all with segments', () => {
+  it("should fail for optional-catch-all without param name", () => {
     const segments: RouteSegment[] = [
-      { type: 'static', value: 'docs' },
-      { type: 'optional-catch-all', value: '[[...slug]]', param: 'slug' },
-    ]
-    const params = matchRouteParams('/docs/[[...slug]]', segments, '/docs/api/guide')
-    expect(params).toEqual({ slug: ['api', 'guide'] })
-  })
+      { type: "static", value: "docs" },
+      { type: "optional-catch-all", value: "[[...]]" },
+    ];
+    const params = matchRouteParams("/docs/[[...]]", segments, "/docs");
+    expect(params).toBeNull();
+  });
 
-  it('should match optional catch-all without segments', () => {
+  it("should handle dynamic segment without param name", () => {
     const segments: RouteSegment[] = [
-      { type: 'static', value: 'docs' },
-      { type: 'optional-catch-all', value: '[[...slug]]', param: 'slug' },
-    ]
-    const params = matchRouteParams('/docs/[[...slug]]', segments, '/docs')
-    expect(params).toEqual({ slug: [] })
-  })
+      { type: "static", value: "blog" },
+      { type: "dynamic", value: "[]" },
+    ];
+    const params = matchRouteParams("/blog/[]", segments, "/blog/123");
+    expect(params).toBeNull();
+  });
 
-  it('should fail for optional-catch-all without param name', () => {
+  it("should handle catch-all without param name", () => {
     const segments: RouteSegment[] = [
-      { type: 'static', value: 'docs' },
-      { type: 'optional-catch-all', value: '[[...]]' },
-    ]
-    const params = matchRouteParams('/docs/[[...]]', segments, '/docs')
-    expect(params).toBeNull()
-  })
+      { type: "static", value: "docs" },
+      { type: "catch-all", value: "[...]" },
+    ];
+    const params = matchRouteParams("/docs/[...]", segments, "/docs/api/guide");
+    expect(params).toBeNull();
+  });
 
-  it('should handle dynamic segment without param name', () => {
+  it("should return null when path is too short", () => {
     const segments: RouteSegment[] = [
-      { type: 'static', value: 'blog' },
-      { type: 'dynamic', value: '[]' },
-    ]
-    const params = matchRouteParams('/blog/[]', segments, '/blog/123')
-    expect(params).toBeNull()
-  })
+      { type: "static", value: "blog" },
+      { type: "dynamic", value: "[id]", param: "id" },
+    ];
+    const params = matchRouteParams("/blog/[id]", segments, "/blog");
+    expect(params).toBeNull();
+  });
 
-  it('should handle catch-all without param name', () => {
-    const segments: RouteSegment[] = [
-      { type: 'static', value: 'docs' },
-      { type: 'catch-all', value: '[...]' },
-    ]
-    const params = matchRouteParams('/docs/[...]', segments, '/docs/api/guide')
-    expect(params).toBeNull()
-  })
+  it("should return null when path is too long", () => {
+    const segments: RouteSegment[] = [{ type: "static", value: "about" }];
+    const params = matchRouteParams("/about", segments, "/about/extra");
+    expect(params).toBeNull();
+  });
+});
 
-  it('should return null when path is too short', () => {
-    const segments: RouteSegment[] = [
-      { type: 'static', value: 'blog' },
-      { type: 'dynamic', value: '[id]', param: 'id' },
-    ]
-    const params = matchRouteParams('/blog/[id]', segments, '/blog')
-    expect(params).toBeNull()
-  })
-
-  it('should return null when path is too long', () => {
-    const segments: RouteSegment[] = [
-      { type: 'static', value: 'about' },
-    ]
-    const params = matchRouteParams('/about', segments, '/about/extra')
-    expect(params).toBeNull()
-  })
-})
-
-describe('isExternalUrl', () => {
-  let originalWindow: any
+describe("isExternalUrl", () => {
+  let originalWindow: any;
 
   beforeEach(() => {
-    originalWindow = globalThis.window
+    originalWindow = globalThis.window;
     globalThis.window = {
       location: {
-        origin: 'https://mysite.com',
+        origin: "https://mysite.com",
       },
-    } as any
-  })
+    } as any;
+  });
 
   afterEach(() => {
-    globalThis.window = originalWindow
-  })
+    globalThis.window = originalWindow;
+  });
 
-  it('should identify external URLs', () => {
-    expect(isExternalUrl('https://example.com', 'https://mysite.com')).toBe(true)
-  })
+  it("should identify external URLs", () => {
+    expect(isExternalUrl("https://example.com", "https://mysite.com")).toBe(true);
+  });
 
-  it('should identify internal URLs', () => {
-    expect(isExternalUrl('https://mysite.com/about', 'https://mysite.com')).toBe(false)
-  })
+  it("should identify internal URLs", () => {
+    expect(isExternalUrl("https://mysite.com/about", "https://mysite.com")).toBe(false);
+  });
 
-  it('should handle relative URLs as internal', () => {
-    expect(isExternalUrl('/about', 'https://mysite.com')).toBe(false)
-  })
+  it("should handle relative URLs as internal", () => {
+    expect(isExternalUrl("/about", "https://mysite.com")).toBe(false);
+  });
 
-  it('should handle protocol-relative URLs', () => {
-    expect(isExternalUrl('//example.com', 'https://mysite.com')).toBe(true)
-  })
+  it("should handle protocol-relative URLs", () => {
+    expect(isExternalUrl("//example.com", "https://mysite.com")).toBe(true);
+  });
 
-  it('should handle invalid URLs', () => {
-    expect(isExternalUrl('not a url', 'https://mysite.com')).toBe(false)
-  })
+  it("should handle invalid URLs", () => {
+    expect(isExternalUrl("not a url", "https://mysite.com")).toBe(false);
+  });
 
-  it('should use window.location.origin when currentOrigin not provided', () => {
-    expect(isExternalUrl('https://example.com')).toBe(true)
-    expect(isExternalUrl('https://mysite.com/about')).toBe(false)
-    expect(isExternalUrl('/about')).toBe(false)
-  })
+  it("should use window.location.origin when currentOrigin not provided", () => {
+    expect(isExternalUrl("https://example.com")).toBe(true);
+    expect(isExternalUrl("https://mysite.com/about")).toBe(false);
+    expect(isExternalUrl("/about")).toBe(false);
+  });
 
-  it('should handle error when window is not available', () => {
-    delete (globalThis as any).window
+  it("should handle error when window is not available", () => {
+    delete (globalThis as any).window;
 
-    expect(isExternalUrl('https://example.com')).toBe(false)
-  })
-})
+    expect(isExternalUrl("https://example.com")).toBe(false);
+  });
+});
 
-describe('findLayoutChain', () => {
-  it('should find layouts for root path', () => {
+describe("findLayoutChain", () => {
+  it("should find layouts for root path", () => {
+    const manifest: AppRouteManifest = {
+      routes: [],
+      layouts: [{ path: "/", filePath: "/app/layout.tsx" }],
+      loading: [],
+      errors: [],
+      notFound: [],
+      templates: [],
+      apiRoutes: [],
+      ogImages: [],
+      generated: "2024-01-01",
+    };
+
+    const chain = findLayoutChain("/", manifest);
+    expect(chain).toHaveLength(1);
+    expect(chain[0].path).toBe("/");
+  });
+
+  it("should find nested layout chain", () => {
     const manifest: AppRouteManifest = {
       routes: [],
       layouts: [
-        { path: '/', filePath: '/app/layout.tsx' },
+        { path: "/", filePath: "/app/layout.tsx" },
+        { path: "/blog", filePath: "/app/blog/layout.tsx" },
+        { path: "/blog/posts", filePath: "/app/blog/posts/layout.tsx" },
       ],
       loading: [],
       errors: [],
@@ -225,21 +248,22 @@ describe('findLayoutChain', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const chain = findLayoutChain('/', manifest)
-    expect(chain).toHaveLength(1)
-    expect(chain[0].path).toBe('/')
-  })
+    const chain = findLayoutChain("/blog/posts", manifest);
+    expect(chain).toHaveLength(3);
+    expect(chain[0].path).toBe("/");
+    expect(chain[1].path).toBe("/blog");
+    expect(chain[2].path).toBe("/blog/posts");
+  });
 
-  it('should find nested layout chain', () => {
+  it("should skip missing intermediate layouts", () => {
     const manifest: AppRouteManifest = {
       routes: [],
       layouts: [
-        { path: '/', filePath: '/app/layout.tsx' },
-        { path: '/blog', filePath: '/app/blog/layout.tsx' },
-        { path: '/blog/posts', filePath: '/app/blog/posts/layout.tsx' },
+        { path: "/", filePath: "/app/layout.tsx" },
+        { path: "/blog/posts", filePath: "/app/blog/posts/layout.tsx" },
       ],
       loading: [],
       errors: [],
@@ -247,39 +271,16 @@ describe('findLayoutChain', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const chain = findLayoutChain('/blog/posts', manifest)
-    expect(chain).toHaveLength(3)
-    expect(chain[0].path).toBe('/')
-    expect(chain[1].path).toBe('/blog')
-    expect(chain[2].path).toBe('/blog/posts')
-  })
+    const chain = findLayoutChain("/blog/posts", manifest);
+    expect(chain).toHaveLength(2);
+    expect(chain[0].path).toBe("/");
+    expect(chain[1].path).toBe("/blog/posts");
+  });
 
-  it('should skip missing intermediate layouts', () => {
-    const manifest: AppRouteManifest = {
-      routes: [],
-      layouts: [
-        { path: '/', filePath: '/app/layout.tsx' },
-        { path: '/blog/posts', filePath: '/app/blog/posts/layout.tsx' },
-      ],
-      loading: [],
-      errors: [],
-      notFound: [],
-      templates: [],
-      apiRoutes: [],
-      ogImages: [],
-      generated: '2024-01-01',
-    }
-
-    const chain = findLayoutChain('/blog/posts', manifest)
-    expect(chain).toHaveLength(2)
-    expect(chain[0].path).toBe('/')
-    expect(chain[1].path).toBe('/blog/posts')
-  })
-
-  it('should return empty chain when no layouts exist', () => {
+  it("should return empty chain when no layouts exist", () => {
     const manifest: AppRouteManifest = {
       routes: [],
       layouts: [],
@@ -289,19 +290,19 @@ describe('findLayoutChain', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const chain = findLayoutChain('/about', manifest)
-    expect(chain).toHaveLength(0)
-  })
+    const chain = findLayoutChain("/about", manifest);
+    expect(chain).toHaveLength(0);
+  });
 
-  it('should cache layout chains', () => {
+  it("should cache layout chains", () => {
     const manifest: AppRouteManifest = {
       routes: [],
       layouts: [
-        { path: '/', filePath: '/app/layout.tsx' },
-        { path: '/blog', filePath: '/app/blog/layout.tsx' },
+        { path: "/", filePath: "/app/layout.tsx" },
+        { path: "/blog", filePath: "/app/blog/layout.tsx" },
       ],
       loading: [],
       errors: [],
@@ -309,37 +310,35 @@ describe('findLayoutChain', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const chain1 = findLayoutChain('/blog', manifest)
-    const chain2 = findLayoutChain('/blog', manifest)
+    const chain1 = findLayoutChain("/blog", manifest);
+    const chain2 = findLayoutChain("/blog", manifest);
 
-    expect(chain1).toBe(chain2)
-  })
+    expect(chain1).toBe(chain2);
+  });
 
-  it('should invalidate cache when manifest changes', () => {
+  it("should invalidate cache when manifest changes", () => {
     const manifest1: AppRouteManifest = {
       routes: [],
-      layouts: [
-        { path: '/', filePath: '/app/layout.tsx' },
-      ],
+      layouts: [{ path: "/", filePath: "/app/layout.tsx" }],
       loading: [],
       errors: [],
       notFound: [],
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const chain1 = findLayoutChain('/blog', manifest1)
+    const chain1 = findLayoutChain("/blog", manifest1);
 
     const manifest2: AppRouteManifest = {
       routes: [],
       layouts: [
-        { path: '/', filePath: '/app/layout.tsx' },
-        { path: '/blog', filePath: '/app/blog/layout.tsx' },
+        { path: "/", filePath: "/app/layout.tsx" },
+        { path: "/blog", filePath: "/app/blog/layout.tsx" },
       ],
       loading: [],
       errors: [],
@@ -347,88 +346,84 @@ describe('findLayoutChain', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const chain2 = findLayoutChain('/blog', manifest2)
+    const chain2 = findLayoutChain("/blog", manifest2);
 
-    expect(chain1).toHaveLength(1)
-    expect(chain2).toHaveLength(2)
-  })
-})
+    expect(chain1).toHaveLength(1);
+    expect(chain2).toHaveLength(2);
+  });
+});
 
-describe('createRouteInfo', () => {
-  it('should create route info for static route', () => {
+describe("createRouteInfo", () => {
+  it("should create route info for static route", () => {
     const manifest: AppRouteManifest = {
       routes: [
         {
-          path: '/about',
-          filePath: '/app/about/page.tsx',
-          segments: [{ type: 'static', value: 'about' }],
+          path: "/about",
+          filePath: "/app/about/page.tsx",
+          segments: [{ type: "static", value: "about" }],
           params: [],
           isDynamic: false,
         },
       ],
-      layouts: [
-        { path: '/', filePath: '/app/layout.tsx' },
-      ],
+      layouts: [{ path: "/", filePath: "/app/layout.tsx" }],
       loading: [],
       errors: [],
       notFound: [],
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const routeInfo = createRouteInfo('/about', manifest)
+    const routeInfo = createRouteInfo("/about", manifest);
 
-    expect(routeInfo.path).toBe('/about')
-    expect(routeInfo.params).toEqual({})
-    expect(routeInfo.layoutChain).toHaveLength(1)
-    expect(routeInfo.searchParams).toBeInstanceOf(URLSearchParams)
-  })
+    expect(routeInfo.path).toBe("/about");
+    expect(routeInfo.params).toEqual({});
+    expect(routeInfo.layoutChain).toHaveLength(1);
+    expect(routeInfo.searchParams).toBeInstanceOf(URLSearchParams);
+  });
 
-  it('should create route info for dynamic route', () => {
+  it("should create route info for dynamic route", () => {
     const manifest: AppRouteManifest = {
       routes: [
         {
-          path: '/blog/[id]',
-          filePath: '/app/blog/[id]/page.tsx',
+          path: "/blog/[id]",
+          filePath: "/app/blog/[id]/page.tsx",
           segments: [
-            { type: 'static', value: 'blog' },
-            { type: 'dynamic', value: '[id]', param: 'id' },
+            { type: "static", value: "blog" },
+            { type: "dynamic", value: "[id]", param: "id" },
           ],
-          params: ['id'],
+          params: ["id"],
           isDynamic: true,
         },
       ],
-      layouts: [
-        { path: '/', filePath: '/app/layout.tsx' },
-      ],
+      layouts: [{ path: "/", filePath: "/app/layout.tsx" }],
       loading: [],
       errors: [],
       notFound: [],
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const routeInfo = createRouteInfo('/blog/123', manifest)
+    const routeInfo = createRouteInfo("/blog/123", manifest);
 
-    expect(routeInfo.path).toBe('/blog/123')
-    expect(routeInfo.params).toEqual({ id: '123' })
-    expect(routeInfo.layoutChain).toHaveLength(1)
-  })
+    expect(routeInfo.path).toBe("/blog/123");
+    expect(routeInfo.params).toEqual({ id: "123" });
+    expect(routeInfo.layoutChain).toHaveLength(1);
+  });
 
-  it('should create route info with search params', () => {
+  it("should create route info with search params", () => {
     const manifest: AppRouteManifest = {
       routes: [
         {
-          path: '/search',
-          filePath: '/app/search/page.tsx',
-          segments: [{ type: 'static', value: 'search' }],
+          path: "/search",
+          filePath: "/app/search/page.tsx",
+          segments: [{ type: "static", value: "search" }],
           params: [],
           isDynamic: false,
         },
@@ -440,24 +435,24 @@ describe('createRouteInfo', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const searchParams = new URLSearchParams('q=test&page=2')
-    const routeInfo = createRouteInfo('/search', manifest, searchParams)
+    const searchParams = new URLSearchParams("q=test&page=2");
+    const routeInfo = createRouteInfo("/search", manifest, searchParams);
 
-    expect(routeInfo.path).toBe('/search')
-    expect(routeInfo.searchParams.get('q')).toBe('test')
-    expect(routeInfo.searchParams.get('page')).toBe('2')
-  })
+    expect(routeInfo.path).toBe("/search");
+    expect(routeInfo.searchParams.get("q")).toBe("test");
+    expect(routeInfo.searchParams.get("page")).toBe("2");
+  });
 
-  it('should normalize path before creating route info', () => {
+  it("should normalize path before creating route info", () => {
     const manifest: AppRouteManifest = {
       routes: [
         {
-          path: '/about',
-          filePath: '/app/about/page.tsx',
-          segments: [{ type: 'static', value: 'about' }],
+          path: "/about",
+          filePath: "/app/about/page.tsx",
+          segments: [{ type: "static", value: "about" }],
           params: [],
           isDynamic: false,
         },
@@ -469,21 +464,21 @@ describe('createRouteInfo', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const routeInfo = createRouteInfo('/about/', manifest)
+    const routeInfo = createRouteInfo("/about/", manifest);
 
-    expect(routeInfo.path).toBe('/about')
-  })
+    expect(routeInfo.path).toBe("/about");
+  });
 
-  it('should handle route not found', () => {
+  it("should handle route not found", () => {
     const manifest: AppRouteManifest = {
       routes: [
         {
-          path: '/about',
-          filePath: '/app/about/page.tsx',
-          segments: [{ type: 'static', value: 'about' }],
+          path: "/about",
+          filePath: "/app/about/page.tsx",
+          segments: [{ type: "static", value: "about" }],
           params: [],
           isDynamic: false,
         },
@@ -495,16 +490,16 @@ describe('createRouteInfo', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const routeInfo = createRouteInfo('/contact', manifest)
+    const routeInfo = createRouteInfo("/contact", manifest);
 
-    expect(routeInfo.path).toBe('/contact')
-    expect(routeInfo.params).toEqual({})
-  })
+    expect(routeInfo.path).toBe("/contact");
+    expect(routeInfo.params).toEqual({});
+  });
 
-  it('should create default search params when not provided', () => {
+  it("should create default search params when not provided", () => {
     const manifest: AppRouteManifest = {
       routes: [],
       layouts: [],
@@ -514,26 +509,26 @@ describe('createRouteInfo', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const routeInfo = createRouteInfo('/test', manifest)
+    const routeInfo = createRouteInfo("/test", manifest);
 
-    expect(routeInfo.searchParams).toBeInstanceOf(URLSearchParams)
-    expect(routeInfo.searchParams.toString()).toBe('')
-  })
+    expect(routeInfo.searchParams).toBeInstanceOf(URLSearchParams);
+    expect(routeInfo.searchParams.toString()).toBe("");
+  });
 
-  it('should handle route with segments that do not match on second call', () => {
+  it("should handle route with segments that do not match on second call", () => {
     const manifest: AppRouteManifest = {
       routes: [
         {
-          path: '/blog/[id]',
-          filePath: '/app/blog/[id]/page.tsx',
+          path: "/blog/[id]",
+          filePath: "/app/blog/[id]/page.tsx",
           segments: [
-            { type: 'static', value: 'blog' },
-            { type: 'dynamic', value: '[id]', param: 'id' },
+            { type: "static", value: "blog" },
+            { type: "dynamic", value: "[id]", param: "id" },
           ],
-          params: ['id'],
+          params: ["id"],
           isDynamic: true,
         },
       ],
@@ -544,75 +539,75 @@ describe('createRouteInfo', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2024-01-01',
-    }
+      generated: "2024-01-01",
+    };
 
-    const routeInfo = createRouteInfo('/blog/test-id', manifest)
+    const routeInfo = createRouteInfo("/blog/test-id", manifest);
 
-    expect(routeInfo.path).toBe('/blog/test-id')
-    expect(routeInfo.params).toEqual({ id: 'test-id' })
-  })
-})
+    expect(routeInfo.path).toBe("/blog/test-id");
+    expect(routeInfo.params).toEqual({ id: "test-id" });
+  });
+});
 
-describe('extractPathname', () => {
-  let originalWindow: any
+describe("extractPathname", () => {
+  let originalWindow: any;
 
   beforeEach(() => {
-    originalWindow = globalThis.window
+    originalWindow = globalThis.window;
     globalThis.window = {
       location: {
-        origin: 'https://example.com',
+        origin: "https://example.com",
       },
-    } as any
-  })
+    } as any;
+  });
 
   afterEach(() => {
-    globalThis.window = originalWindow
-  })
+    globalThis.window = originalWindow;
+  });
 
-  it('should extract pathname from full URL', () => {
-    const result = extractPathname('https://example.com/about')
-    expect(result).toBe('/about')
-  })
+  it("should extract pathname from full URL", () => {
+    const result = extractPathname("https://example.com/about");
+    expect(result).toBe("/about");
+  });
 
-  it('should preserve hash', () => {
-    const result = extractPathname('https://example.com/about#section')
-    expect(result).toBe('/about#section')
-  })
+  it("should preserve hash", () => {
+    const result = extractPathname("https://example.com/about#section");
+    expect(result).toBe("/about#section");
+  });
 
-  it('should handle relative paths', () => {
-    const result = extractPathname('/about')
-    expect(result).toBe('/about')
-  })
+  it("should handle relative paths", () => {
+    const result = extractPathname("/about");
+    expect(result).toBe("/about");
+  });
 
-  it('should handle paths with hash', () => {
-    const result = extractPathname('/about#section')
-    expect(result).toBe('/about#section')
-  })
+  it("should handle paths with hash", () => {
+    const result = extractPathname("/about#section");
+    expect(result).toBe("/about#section");
+  });
 
-  it('should return original string for invalid URLs', () => {
-    const result = extractPathname('not a url')
-    expect(result).toBe('/not%20a%20url')
-  })
+  it("should return original string for invalid URLs", () => {
+    const result = extractPathname("not a url");
+    expect(result).toBe("/not%20a%20url");
+  });
 
-  it('should handle error when window.location throws', () => {
-    delete (globalThis as any).window
+  it("should handle error when window.location throws", () => {
+    delete (globalThis as any).window;
 
-    const result = extractPathname('https://example.com/test')
-    expect(result).toBe('https://example.com/test')
-  })
-})
+    const result = extractPathname("https://example.com/test");
+    expect(result).toBe("https://example.com/test");
+  });
+});
 
-describe('findLayoutChain with additionalPaths', () => {
-  it('includes a layout matched via additionalPaths', () => {
+describe("findLayoutChain with additionalPaths", () => {
+  it("includes a layout matched via additionalPaths", () => {
     const manifest: AppRouteManifest = {
       routes: [],
       layouts: [
-        { path: '/', filePath: 'layout.tsx' },
+        { path: "/", filePath: "layout.tsx" },
         {
-          path: '/about',
-          filePath: '(marketing)/layout.tsx',
-          additionalPaths: ['/pricing'],
+          path: "/about",
+          filePath: "(marketing)/layout.tsx",
+          additionalPaths: ["/pricing"],
         },
       ],
       loading: [],
@@ -621,25 +616,25 @@ describe('findLayoutChain with additionalPaths', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2026-01-01T00:00:00.000Z',
-    }
+      generated: "2026-01-01T00:00:00.000Z",
+    };
 
-    const chain = findLayoutChain('/pricing', manifest)
-    expect(chain).toHaveLength(2)
-    expect(chain[0].filePath).toBe('layout.tsx')
-    expect(chain[1].filePath).toBe('(marketing)/layout.tsx')
-  })
+    const chain = findLayoutChain("/pricing", manifest);
+    expect(chain).toHaveLength(2);
+    expect(chain[0].filePath).toBe("layout.tsx");
+    expect(chain[1].filePath).toBe("(marketing)/layout.tsx");
+  });
 
-  it('prefers exact layout matches over additionalPaths matches', () => {
+  it("prefers exact layout matches over additionalPaths matches", () => {
     const manifest: AppRouteManifest = {
       routes: [],
       layouts: [
         {
-          path: '/about',
-          filePath: '(marketing)/layout.tsx',
-          additionalPaths: ['/pricing'],
+          path: "/about",
+          filePath: "(marketing)/layout.tsx",
+          additionalPaths: ["/pricing"],
         },
-        { path: '/pricing', filePath: 'pricing/layout.tsx' },
+        { path: "/pricing", filePath: "pricing/layout.tsx" },
       ],
       loading: [],
       errors: [],
@@ -647,45 +642,22 @@ describe('findLayoutChain with additionalPaths', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2026-01-01T00:00:00.000Z',
-    }
+      generated: "2026-01-01T00:00:00.000Z",
+    };
 
-    const chain = findLayoutChain('/pricing', manifest)
-    expect(chain).toHaveLength(1)
-    expect(chain[0].filePath).toBe('pricing/layout.tsx')
-  })
+    const chain = findLayoutChain("/pricing", manifest);
+    expect(chain).toHaveLength(1);
+    expect(chain[0].filePath).toBe("pricing/layout.tsx");
+  });
 
-  it('does not include duplicate layout entries', () => {
+  it("does not include duplicate layout entries", () => {
     const manifest: AppRouteManifest = {
       routes: [],
       layouts: [
         {
-          path: '/',
-          filePath: 'layout.tsx',
-          additionalPaths: ['/dashboard'],
-        },
-      ],
-      loading: [],
-      errors: [],
-      notFound: [],
-      templates: [],
-      apiRoutes: [],
-      ogImages: [],
-      generated: '2026-01-01T00:00:00.000Z',
-    }
-
-    const chain = findLayoutChain('/dashboard', manifest)
-    expect(chain.map(layout => layout.filePath)).toEqual(['layout.tsx'])
-  })
-
-  it('does not include a layout that does not match', () => {
-    const manifest: AppRouteManifest = {
-      routes: [],
-      layouts: [
-        {
-          path: '/about',
-          filePath: '(marketing)/layout.tsx',
-          additionalPaths: ['/pricing'],
+          path: "/",
+          filePath: "layout.tsx",
+          additionalPaths: ["/dashboard"],
         },
       ],
       loading: [],
@@ -694,30 +666,53 @@ describe('findLayoutChain with additionalPaths', () => {
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2026-01-01T00:00:00.000Z',
-    }
+      generated: "2026-01-01T00:00:00.000Z",
+    };
 
-    const chain = findLayoutChain('/dashboard', manifest)
-    expect(chain).toHaveLength(0)
-  })
+    const chain = findLayoutChain("/dashboard", manifest);
+    expect(chain.map((layout) => layout.filePath)).toEqual(["layout.tsx"]);
+  });
 
-  it('still works when additionalPaths is absent', () => {
+  it("does not include a layout that does not match", () => {
     const manifest: AppRouteManifest = {
       routes: [],
-      layouts: [{ path: '/', filePath: 'layout.tsx' }],
+      layouts: [
+        {
+          path: "/about",
+          filePath: "(marketing)/layout.tsx",
+          additionalPaths: ["/pricing"],
+        },
+      ],
       loading: [],
       errors: [],
       notFound: [],
       templates: [],
       apiRoutes: [],
       ogImages: [],
-      generated: '2026-01-01T00:00:00.000Z',
-    }
+      generated: "2026-01-01T00:00:00.000Z",
+    };
 
-    const chain = findLayoutChain('/', manifest)
-    expect(chain).toHaveLength(1)
-  })
-})
+    const chain = findLayoutChain("/dashboard", manifest);
+    expect(chain).toHaveLength(0);
+  });
+
+  it("still works when additionalPaths is absent", () => {
+    const manifest: AppRouteManifest = {
+      routes: [],
+      layouts: [{ path: "/", filePath: "layout.tsx" }],
+      loading: [],
+      errors: [],
+      notFound: [],
+      templates: [],
+      apiRoutes: [],
+      ogImages: [],
+      generated: "2026-01-01T00:00:00.000Z",
+    };
+
+    const chain = findLayoutChain("/", manifest);
+    expect(chain).toHaveLength(1);
+  });
+});
 
 function manifestWithTemplates(overrides: Partial<AppRouteManifest> = {}): AppRouteManifest {
   return {
@@ -729,111 +724,115 @@ function manifestWithTemplates(overrides: Partial<AppRouteManifest> = {}): AppRo
     templates: [],
     apiRoutes: [],
     ogImages: [],
-    generated: '2026-01-01T00:00:00.000Z',
+    generated: "2026-01-01T00:00:00.000Z",
     ...overrides,
-  }
+  };
 }
 
-describe('findTemplateChain', () => {
-  it('returns empty array when no templates exist', () => {
-    const m = manifestWithTemplates()
+describe("findTemplateChain", () => {
+  it("returns empty array when no templates exist", () => {
+    const m = manifestWithTemplates();
 
-    expect(findTemplateChain('/', m)).toEqual([])
-    expect(findTemplateChain('/about', m)).toEqual([])
-  })
+    expect(findTemplateChain("/", m)).toEqual([]);
+    expect(findTemplateChain("/about", m)).toEqual([]);
+  });
 
-  it('returns root and nested templates in correct order', () => {
-    const root: TemplateEntry = { path: '/', filePath: 'template.tsx' }
-    const about: TemplateEntry = { path: '/about', filePath: 'about/template.tsx', parentPath: '/' }
-    const m = manifestWithTemplates({ templates: [about, root] })
+  it("returns root and nested templates in correct order", () => {
+    const root: TemplateEntry = { path: "/", filePath: "template.tsx" };
+    const about: TemplateEntry = {
+      path: "/about",
+      filePath: "about/template.tsx",
+      parentPath: "/",
+    };
+    const m = manifestWithTemplates({ templates: [about, root] });
 
-    const chain = findTemplateChain('/about', m)
+    const chain = findTemplateChain("/about", m);
 
-    expect(chain).toHaveLength(2)
-    expect(chain[0].path).toBe('/')
-    expect(chain[1].path).toBe('/about')
-  })
+    expect(chain).toHaveLength(2);
+    expect(chain[0].path).toBe("/");
+    expect(chain[1].path).toBe("/about");
+  });
 
-  it('honors additionalPaths for templates in route groups', () => {
+  it("honors additionalPaths for templates in route groups", () => {
     const tpl: TemplateEntry = {
-      path: '/contact',
-      filePath: '(_public)/template.tsx',
-      additionalPaths: ['/pricing'],
-    }
-    const m = manifestWithTemplates({ templates: [tpl] })
+      path: "/contact",
+      filePath: "(_public)/template.tsx",
+      additionalPaths: ["/pricing"],
+    };
+    const m = manifestWithTemplates({ templates: [tpl] });
 
-    expect(findTemplateChain('/contact', m)).toHaveLength(1)
-    expect(findTemplateChain('/pricing', m)).toHaveLength(1)
-    expect(findTemplateChain('/other', m)).toHaveLength(0)
-  })
+    expect(findTemplateChain("/contact", m)).toHaveLength(1);
+    expect(findTemplateChain("/pricing", m)).toHaveLength(1);
+    expect(findTemplateChain("/other", m)).toHaveLength(0);
+  });
 
-  it('includes grouped ancestor via additionalPaths together with exact child template', () => {
+  it("includes grouped ancestor via additionalPaths together with exact child template", () => {
     const ancestor: TemplateEntry = {
-      path: '/',
-      filePath: '(_public)/template.tsx',
-      additionalPaths: ['/pricing'],
-    }
+      path: "/",
+      filePath: "(_public)/template.tsx",
+      additionalPaths: ["/pricing"],
+    };
     const child: TemplateEntry = {
-      path: '/pricing',
-      filePath: '(_public)/pricing/template.tsx',
-      parentPath: '/',
-    }
-    const m = manifestWithTemplates({ templates: [ancestor, child] })
+      path: "/pricing",
+      filePath: "(_public)/pricing/template.tsx",
+      parentPath: "/",
+    };
+    const m = manifestWithTemplates({ templates: [ancestor, child] });
 
-    const chain = findTemplateChain('/pricing', m)
+    const chain = findTemplateChain("/pricing", m);
 
-    expect(chain).toHaveLength(2)
-    expect(chain[0].filePath).toBe('(_public)/template.tsx')
-    expect(chain[1].filePath).toBe('(_public)/pricing/template.tsx')
-  })
+    expect(chain).toHaveLength(2);
+    expect(chain[0].filePath).toBe("(_public)/template.tsx");
+    expect(chain[1].filePath).toBe("(_public)/pricing/template.tsx");
+  });
 
-  it('merges exact and additionalPaths matches on the same segment', () => {
-    const exact: TemplateEntry = { path: '/pricing', filePath: 'pricing/template.tsx' }
+  it("merges exact and additionalPaths matches on the same segment", () => {
+    const exact: TemplateEntry = { path: "/pricing", filePath: "pricing/template.tsx" };
     const viaGroup: TemplateEntry = {
-      path: '/contact',
-      filePath: '(_public)/template.tsx',
-      additionalPaths: ['/pricing'],
-    }
-    const m = manifestWithTemplates({ templates: [exact, viaGroup] })
+      path: "/contact",
+      filePath: "(_public)/template.tsx",
+      additionalPaths: ["/pricing"],
+    };
+    const m = manifestWithTemplates({ templates: [exact, viaGroup] });
 
-    const chain = findTemplateChain('/pricing', m)
+    const chain = findTemplateChain("/pricing", m);
 
-    expect(chain).toHaveLength(2)
-    expect(chain.map(t => t.filePath)).toEqual([
-      'pricing/template.tsx',
-      '(_public)/template.tsx',
-    ])
-  })
+    expect(chain).toHaveLength(2);
+    expect(chain.map((t) => t.filePath)).toEqual([
+      "pricing/template.tsx",
+      "(_public)/template.tsx",
+    ]);
+  });
 
-  it('caches results per manifest', () => {
-    const root: TemplateEntry = { path: '/', filePath: 'template.tsx' }
-    const m = manifestWithTemplates({ templates: [root] })
+  it("caches results per manifest", () => {
+    const root: TemplateEntry = { path: "/", filePath: "template.tsx" };
+    const m = manifestWithTemplates({ templates: [root] });
 
-    const a = findTemplateChain('/about', m)
-    const b = findTemplateChain('/about', m)
+    const a = findTemplateChain("/about", m);
+    const b = findTemplateChain("/about", m);
 
-    expect(a).toBe(b)
-  })
+    expect(a).toBe(b);
+  });
 
-  it('invalidates cache when manifest is replaced', () => {
-    const t1: TemplateEntry = { path: '/', filePath: 'template-a.tsx' }
-    const t2: TemplateEntry = { path: '/', filePath: 'template-b.tsx' }
+  it("invalidates cache when manifest is replaced", () => {
+    const t1: TemplateEntry = { path: "/", filePath: "template-a.tsx" };
+    const t2: TemplateEntry = { path: "/", filePath: "template-b.tsx" };
 
-    const chain1 = findTemplateChain('/', manifestWithTemplates({ templates: [t1] }))
-    const chain2 = findTemplateChain('/', manifestWithTemplates({ templates: [t2] }))
+    const chain1 = findTemplateChain("/", manifestWithTemplates({ templates: [t1] }));
+    const chain2 = findTemplateChain("/", manifestWithTemplates({ templates: [t2] }));
 
-    expect(chain1[0].filePath).toBe('template-a.tsx')
-    expect(chain2[0].filePath).toBe('template-b.tsx')
-  })
-})
+    expect(chain1[0].filePath).toBe("template-a.tsx");
+    expect(chain2[0].filePath).toBe("template-b.tsx");
+  });
+});
 
-describe('createRouteInfo with templateChain', () => {
-  it('returns templateChain alongside layoutChain', () => {
-    const root: TemplateEntry = { path: '/', filePath: 'template.tsx' }
-    const info = createRouteInfo('/', manifestWithTemplates({ templates: [root] }))
+describe("createRouteInfo with templateChain", () => {
+  it("returns templateChain alongside layoutChain", () => {
+    const root: TemplateEntry = { path: "/", filePath: "template.tsx" };
+    const info = createRouteInfo("/", manifestWithTemplates({ templates: [root] }));
 
-    expect(info.templateChain).toHaveLength(1)
-    expect(info.templateChain[0].filePath).toBe('template.tsx')
-    expect(info.layoutChain).toEqual([])
-  })
-})
+    expect(info.templateChain).toHaveLength(1);
+    expect(info.templateChain[0].filePath).toBe("template.tsx");
+    expect(info.layoutChain).toEqual([]);
+  });
+});

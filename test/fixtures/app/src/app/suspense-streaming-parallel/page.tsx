@@ -1,5 +1,5 @@
-import { Suspense } from 'react'
-import { sleep } from '../../utils/test-helpers'
+import { Suspense } from "react";
+import { sleep } from "../../utils/test-helpers";
 
 export default function ParallelSuspensePage() {
   return (
@@ -12,23 +12,21 @@ export default function ParallelSuspensePage() {
         <SlowComponent name="Slow" delay={2000} />
       </Suspense>
     </div>
-  )
+  );
 }
 
 interface SlowProps {
-  name: string
-  delay: number
+  name: string;
+  delay: number;
 }
 
 async function SlowComponent({ name, delay }: SlowProps) {
-  await sleep(delay)
+  await sleep(delay);
   // eslint-disable-next-line react/purity
-  const timestamp = new Date().toISOString()
+  const timestamp = new Date().toISOString();
   return (
     <div data-testid={`component-${name.toLowerCase()}`}>
-      {name}
-      :
-      {timestamp}
+      {name}:{timestamp}
     </div>
-  )
+  );
 }

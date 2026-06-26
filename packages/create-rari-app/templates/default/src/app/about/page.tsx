@@ -1,4 +1,4 @@
-import type { PageProps, Metadata } from 'rari'
+import type { PageProps, Metadata } from "rari";
 
 export default function AboutPage(_params: PageProps) {
   return (
@@ -20,10 +20,10 @@ export default function AboutPage(_params: PageProps) {
         </ul>
       </div>
     </div>
-  )
+  );
 }
 
 export const metadata: Metadata = {
-  title: 'About | {{PROJECT_NAME}}',
-  description: 'Learn more about this rari application',
-}
+  title: "About | {{PROJECT_NAME}}",
+  description: "Learn more about this rari application",
+};

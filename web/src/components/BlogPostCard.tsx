@@ -1,14 +1,14 @@
-import { formatDate } from '@/lib/date'
+import { formatDate } from "@/lib/date";
 
 interface BlogPostCardProps {
-  slug: string
-  title: string
-  description: string
-  date: string
+  slug: string;
+  title: string;
+  description: string;
+  date: string;
 }
 
 export default function BlogPostCard({ slug, title, description, date }: BlogPostCardProps) {
-  const safeSlug = encodeURIComponent(slug)
+  const safeSlug = encodeURIComponent(slug);
   return (
     <a
       href={`/blog/${safeSlug}`}
@@ -20,9 +20,7 @@ export default function BlogPostCard({ slug, title, description, date }: BlogPos
       <h2 className="text-xl font-semibold text-[#f0f6fc] mb-3 group-hover:text-[#fd7e14] transition-colors">
         {title}
       </h2>
-      <p className="text-gray-300 leading-relaxed">
-        {description}
-      </p>
+      <p className="text-gray-300 leading-relaxed">{description}</p>
     </a>
-  )
+  );
 }

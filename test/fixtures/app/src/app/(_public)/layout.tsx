@@ -1,4 +1,4 @@
-import type { LayoutProps } from 'rari'
+import type { LayoutProps } from "rari";
 
 export default function PublicGroupLayout({ children }: LayoutProps) {
   return (
@@ -6,5 +6,5 @@ export default function PublicGroupLayout({ children }: LayoutProps) {
       <div data-testid="public-group-banner">Public Group Banner</div>
       <div data-testid="public-group-children">{children}</div>
     </div>
-  )
+  );
 }

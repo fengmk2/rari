@@ -1,10 +1,10 @@
-import path from 'node:path'
-import tailwindcss from '@tailwindcss/vite'
-import { rari } from 'rari/vite'
-import { defineConfig } from 'vite'
+import path from "node:path";
+import tailwindcss from "@tailwindcss/vite";
+import { rari } from "rari/vite";
+import { defineConfig, lazyPlugins } from "vite-plus";
 
 export default defineConfig({
-  plugins: [
+  plugins: lazyPlugins(() => [
     rari({
       images: {
         deviceSizes: [1920],
@@ -12,21 +12,21 @@ export default defineConfig({
         qualityAllowlist: [25, 50, 75, 100],
         remotePatterns: [
           {
-            hostname: 'images.unsplash.com',
+            hostname: "images.unsplash.com",
           },
         ],
         localPatterns: [
           {
-            pathname: '/images/**',
+            pathname: "/images/**",
           },
         ],
       },
     }),
     tailwindcss(),
-  ],
+  ]),
   resolve: {
     alias: {
-      '@': path.resolve(import.meta.dirname, 'src'),
+      "@": path.resolve(import.meta.dirname, "src"),
     },
   },
-})
+});

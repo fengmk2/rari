@@ -1,15 +1,18 @@
-import type { Metadata } from 'rari'
-import Breadcrumbs from '@/components/Breadcrumbs'
-import ArrowNarrowRight from '@/components/icons/ArrowNarrowRight'
-import PageHeader from '@/components/PageHeader'
-import { container } from '@/lib/styles'
+import type { Metadata } from "rari";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import ArrowNarrowRight from "@/components/icons/ArrowNarrowRight";
+import PageHeader from "@/components/PageHeader";
+import { container } from "@/lib/styles";
 
 export default function ComponentsPage() {
   return (
     <div className={container.base}>
       <div className="prose prose-invert max-w-none">
         <Breadcrumbs pathname="/docs/api-reference/components" />
-        <PageHeader title="Components" pagePath="web/src/app/docs/api-reference/components/page.tsx" />
+        <PageHeader
+          title="Components"
+          pagePath="web/src/app/docs/api-reference/components/page.tsx"
+        />
         <p className="text-lg text-gray-300 leading-relaxed">
           Built-in React components for optimized images, dynamic metadata, and more.
         </p>
@@ -26,13 +29,14 @@ export default function ComponentsPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h2 className="relative text-xl font-semibold mb-2 font-mono">
-                        <span className="text-[#f0f6fc]">{'<Image>'}</span>
+                        <span className="text-[#f0f6fc]">{"<Image>"}</span>
                         <span className="absolute inset-0 bg-clip-text text-transparent bg-linear-to-r from-[#f0f6fc] to-[#fd7e14] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          {'<Image>'}
+                          {"<Image>"}
                         </span>
                       </h2>
                       <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors duration-300">
-                        Optimize and serve images with automatic format conversion, responsive sizing, and lazy loading.
+                        Optimize and serve images with automatic format conversion, responsive
+                        sizing, and lazy loading.
                       </p>
                     </div>
                   </div>
@@ -41,12 +45,12 @@ export default function ComponentsPage() {
               <div
                 className="absolute z-0 aspect-2/1 w-16 animate-border-trail opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 style={{
-                  background: 'radial-gradient(ellipse at 100% 50%, #fd7e14 0%, #ff9a3c 40%, transparent 70%)',
-                  offsetAnchor: '100% 50%',
-                  offsetPath: 'border-box',
+                  background:
+                    "radial-gradient(ellipse at 100% 50%, #fd7e14 0%, #ff9a3c 40%, transparent 70%)",
+                  offsetAnchor: "100% 50%",
+                  offsetPath: "border-box",
                 }}
-              >
-              </div>
+              ></div>
             </a>
 
             <a
@@ -74,12 +78,12 @@ export default function ComponentsPage() {
               <div
                 className="absolute z-0 aspect-2/1 w-16 animate-border-trail opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 style={{
-                  background: 'radial-gradient(ellipse at 100% 50%, #fd7e14 0%, #ff9a3c 40%, transparent 70%)',
-                  offsetAnchor: '100% 50%',
-                  offsetPath: 'border-box',
+                  background:
+                    "radial-gradient(ellipse at 100% 50%, #fd7e14 0%, #ff9a3c 40%, transparent 70%)",
+                  offsetAnchor: "100% 50%",
+                  offsetPath: "border-box",
                 }}
-              >
-              </div>
+              ></div>
             </a>
 
             <div className="mt-8 p-6 bg-[#0d1117] border border-[#30363d] rounded-lg">
@@ -101,10 +105,10 @@ export default function ComponentsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export const metadata: Metadata = {
-  title: 'Components / API Reference / rari Docs',
-  description: 'Built-in React components for optimized images, dynamic metadata, and more.',
-}
+  title: "Components / API Reference / rari Docs",
+  description: "Built-in React components for optimized images, dynamic metadata, and more.",
+};

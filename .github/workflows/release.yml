@@ -3,11 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
-      - 'rari@*'
-      - 'create-rari-app@*'
-      - '@rari/use-cache@*'
-      - 'use-cache-binaries@*'
+      - "v*"
+      - "rari@*"
+      - "create-rari-app@*"
+      - "@rari/use-cache@*"
+      - "use-cache-binaries@*"
   workflow_dispatch:
 
 permissions:
@@ -16,7 +16,7 @@ permissions:
 jobs:
   build-snapshot:
     name: Build V8 snapshot
-    runs-on: namespace-profile-rari-linux-amd64
+    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     timeout-minutes: 30
     steps:
@@ -69,7 +69,7 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-            os: namespace-profile-rari-linux-amd64
+            os: ubuntu-latest
             name: rari-linux-x64
             platform: linux-x64
           - target: aarch64-unknown-linux-gnu
@@ -142,7 +142,7 @@ jobs:
         if: runner.os == 'macOS'
         run: cargo build --release --target ${{ matrix.target }} --bin rari
         env:
-          RUSTFLAGS: '' # Override .cargo/config.toml to use default linker
+          RUSTFLAGS: "" # Override .cargo/config.toml to use default linker
 
       - name: Build binary (Windows)
         if: runner.os == 'Windows'
@@ -176,7 +176,7 @@ jobs:
 
   npm-release-platform:
     needs: build-binaries
-    runs-on: namespace-profile-rari-linux-amd64
+    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
@@ -324,7 +324,7 @@ jobs:
           echo "✓ Published ${PACKAGE_NAME}"
 
   npm-release-package:
-    runs-on: namespace-profile-rari-linux-amd64
+    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/rari@') || startsWith(github.ref, 'refs/tags/create-rari-app@')
     permissions:
       contents: read
@@ -360,7 +360,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
-          npm_config_trust_lockfile: 'true'
+          npm_config_trust_lockfile: "true"
 
       - name: Build package
         run: pnpm --filter "${{ steps.pkg.outputs.name }}" build
@@ -403,7 +403,7 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-            os: namespace-profile-rari-linux-amd64
+            os: ubuntu-latest
             platform: linux-x64
           - target: aarch64-unknown-linux-gnu
             os: namespace-profile-rari-linux-arm64
@@ -502,7 +502,7 @@ jobs:
 
   npm-release-use-cache-platform:
     needs: build-use-cache-addons
-    runs-on: namespace-profile-rari-linux-amd64
+    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/use-cache-binaries@')
     permissions:
       contents: read
@@ -599,7 +599,7 @@ jobs:
           echo "✓ Published @rari/use-cache-${{ matrix.platform }}"
 
   npm-release-use-cache:
-    runs-on: namespace-profile-rari-linux-amd64
+    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/@rari/use-cache@')
     permissions:
       contents: read
@@ -632,7 +632,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
-          npm_config_trust_lockfile: 'true'
+          npm_config_trust_lockfile: "true"
 
       - name: Build package
         run: pnpm --filter "@rari/use-cache" build

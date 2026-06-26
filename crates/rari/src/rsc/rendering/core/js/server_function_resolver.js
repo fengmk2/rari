@@ -1,6 +1,5 @@
 (function () {
-  if (!globalThis.ServerFunctions)
-    throw new Error('ServerFunctions extension not loaded')
+  if (!globalThis.ServerFunctions) throw new Error("ServerFunctions extension not loaded");
 
-  return globalThis.ServerFunctions.resolve()
-})()
+  return globalThis.ServerFunctions.resolve();
+})();

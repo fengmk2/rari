@@ -1,92 +1,98 @@
-import type { Plugin, ViteDevServer } from 'vite-plus'
-import { promises as fs } from 'node:fs'
-import path from 'node:path'
-import process from 'node:process'
-import { BACKSLASH_REGEX, QUOTE_REGEX, TSX_EXT_REGEX } from '../shared/regex-constants'
-import { generateAppRouteManifest } from './routes'
+import type { Plugin, ViteDevServer } from "vite-plus";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import { BACKSLASH_REGEX, QUOTE_REGEX, TSX_EXT_REGEX } from "../shared/regex-constants";
+import { generateAppRouteManifest } from "./routes";
 
-const METADATA_EXPORT_REGEX = /export\s+const\s+metadata\s*(?::\s*\w+\s*)?=\s*(\{[\s\S]*?\n\})/
-const TITLE_REGEX = /title\s*:\s*['"]([^'"]+)['"]/
-const DESCRIPTION_REGEX = /description\s*:\s*['"]([^'"]+)['"]/
-const KEYWORDS_REGEX = /keywords\s*:\s*\[([\s\S]*?)\]/
+const METADATA_EXPORT_REGEX = /export\s+const\s+metadata\s*(?::\s*\w+\s*)?=\s*(\{[\s\S]*?\n\})/;
+const TITLE_REGEX = /title\s*:\s*['"]([^'"]+)['"]/;
+const DESCRIPTION_REGEX = /description\s*:\s*['"]([^'"]+)['"]/;
+const KEYWORDS_REGEX = /keywords\s*:\s*\[([\s\S]*?)\]/;
 
 interface RariRouterPluginOptions {
-  appDir?: string
-  extensions?: string[]
-  outDir?: string
+  appDir?: string;
+  extensions?: string[];
+  outDir?: string;
 }
 
 const DEFAULT_OPTIONS: Required<RariRouterPluginOptions> = {
-  appDir: 'src/app',
-  extensions: ['.tsx', '.jsx', '.ts', '.js'],
-  outDir: 'dist',
-}
+  appDir: "src/app",
+  extensions: [".tsx", ".jsx", ".ts", ".js"],
+  outDir: "dist",
+};
 
-type AppRouterFileType = 'page' | 'layout' | 'template' | 'loading' | 'error' | 'not-found' | 'route' | 'server-action'
+type AppRouterFileType =
+  | "page"
+  | "layout"
+  | "template"
+  | "loading"
+  | "error"
+  | "not-found"
+  | "route"
+  | "server-action";
 
 interface AppRouterHMRData {
-  fileType: AppRouterFileType
-  filePath: string
-  routePath: string
-  affectedRoutes: string[]
-  manifestUpdated: boolean
-  timestamp: number
-  metadata?: Record<string, any>
-  metadataChanged?: boolean
-  actionExports?: string[]
-  methods?: string[]
+  fileType: AppRouterFileType;
+  filePath: string;
+  routePath: string;
+  affectedRoutes: string[];
+  manifestUpdated: boolean;
+  timestamp: number;
+  metadata?: Record<string, any>;
+  metadataChanged?: boolean;
+  actionExports?: string[];
+  methods?: string[];
 }
 
 function getAppRouterFileType(filePath: string): AppRouterFileType | null {
-  const fileName = path.basename(filePath)
-  const nameWithoutExt = fileName.replace(TSX_EXT_REGEX, '')
+  const fileName = path.basename(filePath);
+  const nameWithoutExt = fileName.replace(TSX_EXT_REGEX, "");
 
   switch (nameWithoutExt) {
-    case 'page':
-      return 'page'
-    case 'layout':
-      return 'layout'
-    case 'template':
-      return 'template'
-    case 'loading':
-      return 'loading'
-    case 'error':
-      return 'error'
-    case 'not-found':
-      return 'not-found'
-    case 'route':
-      return 'route'
+    case "page":
+      return "page";
+    case "layout":
+      return "layout";
+    case "template":
+      return "template";
+    case "loading":
+      return "loading";
+    case "error":
+      return "error";
+    case "not-found":
+      return "not-found";
+    case "route":
+      return "route";
     default:
-      return null
+      return null;
   }
 }
 
 function isGroupSegment(segment: string): boolean {
-  return /^\([^/]+\)$/.test(segment)
+  return /^\([^/]+\)$/.test(segment);
 }
 
 function stripRouteGroups(routePath: string): string {
-  if (!routePath || routePath === '/')
-    return '/'
+  if (!routePath || routePath === "/") return "/";
 
   const segments = routePath
-    .replace(BACKSLASH_REGEX, '/')
-    .split('/')
-    .filter(segment => Boolean(segment) && !isGroupSegment(segment))
+    .replace(BACKSLASH_REGEX, "/")
+    .split("/")
+    .filter((segment) => Boolean(segment) && !isGroupSegment(segment));
 
-  return segments.length > 0 ? `/${segments.join('/')}` : '/'
+  return segments.length > 0 ? `/${segments.join("/")}` : "/";
 }
 
 function filePathToRoutePath(filePath: string, appDir: string): string {
-  const relativePath = path.relative(appDir, path.dirname(filePath))
+  const relativePath = path.relative(appDir, path.dirname(filePath));
 
-  if (!relativePath || relativePath === '.')
-    return '/'
+  if (!relativePath || relativePath === ".") return "/";
 
-  const normalized = relativePath.replace(BACKSLASH_REGEX, '/')
-  const segments = normalized.split('/').filter(Boolean)
+  const normalized = relativePath.replace(BACKSLASH_REGEX, "/");
+  const segments = normalized.split("/").filter(Boolean);
 
-  return stripRouteGroups(`/${segments.join('/')}`)
+  return stripRouteGroups(`/${segments.join("/")}`);
 }
 
 function getAffectedRoutes(
@@ -94,319 +100,310 @@ function getAffectedRoutes(
   fileType: AppRouterFileType,
   allRoutes: string[],
 ): string[] {
-  if (fileType === 'page')
-    return [routePath]
+  if (fileType === "page") return [routePath];
 
-  const prefix = `${routePath}${routePath !== '/' ? '/' : ''}`
+  const prefix = `${routePath}${routePath !== "/" ? "/" : ""}`;
   const affected = allRoutes.filter((route) => {
-    return route === routePath || route.startsWith(prefix)
-  })
+    return route === routePath || route.startsWith(prefix);
+  });
 
-  return affected.length > 0 ? affected : [routePath]
+  return affected.length > 0 ? affected : [routePath];
 }
 
 function extractMetadata(fileContent: string): Record<string, any> | null {
   try {
-    const match = fileContent.match(METADATA_EXPORT_REGEX)
+    const match = fileContent.match(METADATA_EXPORT_REGEX);
 
-    if (!match)
-      return null
+    if (!match) return null;
 
-    const metadataString = match[1]
+    const metadataString = match[1];
 
-    const metadata: Record<string, any> = {}
+    const metadata: Record<string, any> = {};
 
-    const titleMatch = metadataString.match(TITLE_REGEX)
-    if (titleMatch)
-      metadata.title = titleMatch[1]
+    const titleMatch = metadataString.match(TITLE_REGEX);
+    if (titleMatch) metadata.title = titleMatch[1];
 
-    const descMatch = metadataString.match(DESCRIPTION_REGEX)
-    if (descMatch)
-      metadata.description = descMatch[1]
+    const descMatch = metadataString.match(DESCRIPTION_REGEX);
+    if (descMatch) metadata.description = descMatch[1];
 
-    const keywordsMatch = metadataString.match(KEYWORDS_REGEX)
+    const keywordsMatch = metadataString.match(KEYWORDS_REGEX);
     if (keywordsMatch) {
-      const keywordsStr = keywordsMatch[1]
+      const keywordsStr = keywordsMatch[1];
       const keywords = keywordsStr
-        .split(',')
-        .map(k => k.trim().replace(QUOTE_REGEX, ''))
-        .filter(Boolean)
-      metadata.keywords = keywords
+        .split(",")
+        .map((k) => k.trim().replace(QUOTE_REGEX, ""))
+        .filter(Boolean);
+      metadata.keywords = keywords;
     }
 
-    const fieldsToExtract = ['author', 'viewport', 'themeColor', 'robots', 'openGraph', 'twitter']
+    const fieldsToExtract = ["author", "viewport", "themeColor", "robots", "openGraph", "twitter"];
     for (const field of fieldsToExtract) {
-      const fieldRegex = new RegExp(`${field}\\s*:\\s*['"]([^'"]+)['"]`, 'm')
-      const fieldMatch = metadataString.match(fieldRegex)
-      if (fieldMatch)
-        metadata[field] = fieldMatch[1]
+      const fieldRegex = new RegExp(`${field}\\s*:\\s*['"]([^'"]+)['"]`, "m");
+      const fieldMatch = metadataString.match(fieldRegex);
+      if (fieldMatch) metadata[field] = fieldMatch[1];
     }
 
-    return Object.keys(metadata).length > 0 ? metadata : null
-  }
-  catch (error) {
-    console.error('[rari] Router: Failed to extract metadata:', error)
-    return null
+    return Object.keys(metadata).length > 0 ? metadata : null;
+  } catch (error) {
+    console.error("[rari] Router: Failed to extract metadata:", error);
+    return null;
   }
 }
 
 function detectHttpMethods(fileContent: string): string[] {
-  const methods: string[] = []
-  const httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
+  const methods: string[] = [];
+  const httpMethods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
 
   for (const method of httpMethods) {
-    const functionExportRegex = new RegExp(
-      `export\\s+(?:async\\s+)?function\\s+${method}\\s*\\(`,
-    )
+    const functionExportRegex = new RegExp(`export\\s+(?:async\\s+)?function\\s+${method}\\s*\\(`);
     const constExportRegex = new RegExp(
       `export\\s+(?:async\\s+)?(?:const|let|var)\\s+${method}\\s*=`,
-    )
+    );
 
     if (functionExportRegex.test(fileContent) || constExportRegex.test(fileContent))
-      methods.push(method)
+      methods.push(method);
   }
 
-  return methods
+  return methods;
 }
 
 async function notifyApiRouteInvalidation(filePath: string): Promise<void> {
   try {
-    const response = await fetch('http://localhost:3000/_rari/hmr', {
-      method: 'POST',
+    const response = await fetch("http://localhost:3000/_rari/hmr", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'invalidate-api-route',
+        action: "invalidate-api-route",
         filePath,
       }),
-    })
+    });
 
     if (!response.ok) {
-      console.error(`[rari] Router: Failed to invalidate API route cache: ${response.statusText}`)
-      return
+      console.error(`[rari] Router: Failed to invalidate API route cache: ${response.statusText}`);
+      return;
     }
 
-    const result = await response.json()
+    const result = await response.json();
     if (!result.success)
-      console.error(`[rari] HMR: Failed to invalidate API route cache: ${result.error || 'Unknown error'}`)
-  }
-  catch (error) {
-    console.error('[rari] Router: Failed to notify API route invalidation:', error)
+      console.error(
+        `[rari] HMR: Failed to invalidate API route cache: ${result.error || "Unknown error"}`,
+      );
+  } catch (error) {
+    console.error("[rari] Router: Failed to notify API route invalidation:", error);
   }
 }
 
 export function rariRouter(options: RariRouterPluginOptions = {}): Plugin {
-  const opts = { ...DEFAULT_OPTIONS, ...options }
+  const opts = { ...DEFAULT_OPTIONS, ...options };
 
-  let cachedManifestContent: string | null = null
+  let cachedManifestContent: string | null = null;
 
-  const pendingHMRUpdates = new Map<string, NodeJS.Timeout>()
-  const DEBOUNCE_DELAY = 200
+  const pendingHMRUpdates = new Map<string, NodeJS.Timeout>();
+  const DEBOUNCE_DELAY = 200;
 
-  let routeStructureHash: string | null = null
-  const routeFiles = new Set<string>()
+  let routeStructureHash: string | null = null;
+  const routeFiles = new Set<string>();
 
   const computeRouteStructureHash = (files: Set<string>): string => {
-    const sortedFiles = [...files].toSorted()
-    return sortedFiles.join('|')
-  }
+    const sortedFiles = [...files].toSorted();
+    return sortedFiles.join("|");
+  };
 
   const scanRouteFiles = async (appDir: string): Promise<Set<string>> => {
-    const files = new Set<string>()
+    const files = new Set<string>();
 
     const scanDir = async (dir: string): Promise<void> => {
       try {
-        const entries = await fs.readdir(dir, { withFileTypes: true })
+        const entries = await fs.readdir(dir, { withFileTypes: true });
 
         for (const entry of entries) {
-          const fullPath = path.join(dir, entry.name)
+          const fullPath = path.join(dir, entry.name);
 
           if (entry.isDirectory()) {
-            await scanDir(fullPath)
-          }
-          else if (entry.isFile() && opts.extensions.some(ext => entry.name.endsWith(ext))) {
-            const fileType = getAppRouterFileType(fullPath)
-            if (fileType)
-              files.add(fullPath)
+            await scanDir(fullPath);
+          } else if (entry.isFile() && opts.extensions.some((ext) => entry.name.endsWith(ext))) {
+            const fileType = getAppRouterFileType(fullPath);
+            if (fileType) files.add(fullPath);
           }
         }
-      }
-      catch {}
-    }
+      } catch {}
+    };
 
-    await scanDir(appDir)
-    return files
-  }
+    await scanDir(appDir);
+    return files;
+  };
 
-  const generateAppRoutes = async (root: string, forceRegenerate: boolean = false): Promise<string | null> => {
-    const appDir = path.resolve(root, opts.appDir)
-
-    try {
-      await fs.access(appDir)
-    }
-    catch {
-      return null
-    }
+  const generateAppRoutes = async (
+    root: string,
+    forceRegenerate: boolean = false,
+  ): Promise<string | null> => {
+    const appDir = path.resolve(root, opts.appDir);
 
     try {
-      const currentRouteFiles = await scanRouteFiles(appDir)
-      const currentHash = computeRouteStructureHash(currentRouteFiles)
+      await fs.access(appDir);
+    } catch {
+      return null;
+    }
+
+    try {
+      const currentRouteFiles = await scanRouteFiles(appDir);
+      const currentHash = computeRouteStructureHash(currentRouteFiles);
 
       if (!forceRegenerate && routeStructureHash === currentHash && cachedManifestContent)
-        return cachedManifestContent
+        return cachedManifestContent;
 
       const manifest = await generateAppRouteManifest(appDir, {
         extensions: opts.extensions,
-      })
+      });
 
-      const manifestContent = JSON.stringify(manifest, null, 2)
+      const manifestContent = JSON.stringify(manifest, null, 2);
 
-      const outDir = path.resolve(root, opts.outDir)
-      await fs.mkdir(outDir, { recursive: true })
-      const serverDir = path.join(outDir, 'server')
-      await fs.mkdir(serverDir, { recursive: true })
-      await fs.writeFile(path.join(serverDir, 'routes.json'), manifestContent, 'utf-8')
+      const outDir = path.resolve(root, opts.outDir);
+      await fs.mkdir(outDir, { recursive: true });
+      const serverDir = path.join(outDir, "server");
+      await fs.mkdir(serverDir, { recursive: true });
+      await fs.writeFile(path.join(serverDir, "routes.json"), manifestContent, "utf-8");
 
-      routeStructureHash = currentHash
-      routeFiles.clear()
-      currentRouteFiles.forEach(file => routeFiles.add(file))
+      routeStructureHash = currentHash;
+      routeFiles.clear();
+      currentRouteFiles.forEach((file) => routeFiles.add(file));
 
-      return manifestContent
+      return manifestContent;
+    } catch (error) {
+      console.error("[rari] Router: Failed to generate app routes:", error);
+      return null;
     }
-    catch (error) {
-      console.error('[rari] Router: Failed to generate app routes:', error)
-      return null
-    }
-  }
+  };
 
   const setupWatcher = (devServer: ViteDevServer): void => {
-    const appDir = path.resolve(devServer.config.root, opts.appDir)
+    const appDir = path.resolve(devServer.config.root, opts.appDir);
 
-    devServer.watcher.on('all', async (event: string, filePath: string) => {
-      if (!filePath.startsWith(appDir))
-        return
+    devServer.watcher.on("all", async (event: string, filePath: string) => {
+      if (!filePath.startsWith(appDir)) return;
 
-      if (opts.extensions.some(ext => filePath.endsWith(ext))) {
+      if (opts.extensions.some((ext) => filePath.endsWith(ext))) {
         try {
-          const fileType = getAppRouterFileType(filePath)
-          const isRouteFile = fileType !== null
-          const isAddOrUnlink = event === 'add' || event === 'unlink'
-          const isNewRouteFile = isRouteFile && !routeFiles.has(filePath)
+          const fileType = getAppRouterFileType(filePath);
+          const isRouteFile = fileType !== null;
+          const isAddOrUnlink = event === "add" || event === "unlink";
+          const isNewRouteFile = isRouteFile && !routeFiles.has(filePath);
 
           if (isAddOrUnlink || isNewRouteFile) {
-            await generateAppRoutes(devServer.config.root, true)
+            await generateAppRoutes(devServer.config.root, true);
 
             if (filePath.includes(opts.appDir)) {
               devServer.ws.send({
-                type: 'full-reload',
-                path: '*',
-              })
+                type: "full-reload",
+                path: "*",
+              });
             }
           }
-        }
-        catch (error) {
-          console.error('[rari] Router: Failed to regenerate app routes:', error)
+        } catch (error) {
+          console.error("[rari] Router: Failed to regenerate app routes:", error);
         }
       }
-    })
-  }
+    });
+  };
 
-  let viteRoot: string
+  let viteRoot: string;
 
   return {
-    name: 'rari-router',
+    name: "rari-router",
 
     configResolved(config) {
-      viteRoot = config.root
+      viteRoot = config.root;
 
       // Suppress Vite warnings about dynamic imports in our dist files
       // These are intentional and use @vite-ignore comments that get stripped by minification
-      const originalWarn = config.logger.warn
+      const originalWarn = config.logger.warn;
       config.logger.warn = (msg, options) => {
-        if (typeof msg === 'string' && msg.includes('The above dynamic import cannot be analyzed') && msg.includes('packages/rari/dist/'))
-          return
+        if (
+          typeof msg === "string" &&
+          msg.includes("The above dynamic import cannot be analyzed") &&
+          msg.includes("packages/rari/dist/")
+        )
+          return;
 
-        originalWarn(msg, options)
-      }
+        originalWarn(msg, options);
+      };
     },
 
     async writeBundle() {
-      const root = viteRoot || process.cwd()
-      cachedManifestContent = await generateAppRoutes(root, true)
+      const root = viteRoot || process.cwd();
+      cachedManifestContent = await generateAppRoutes(root, true);
     },
 
     configureServer(devServer: ViteDevServer) {
-      setupWatcher(devServer)
+      setupWatcher(devServer);
     },
 
     async handleHotUpdate(ctx: any) {
-      const { file, server } = ctx
+      const { file, server } = ctx;
 
-      const appDir = path.resolve(server.config.root, opts.appDir)
+      const appDir = path.resolve(server.config.root, opts.appDir);
 
-      const isAppFile
-        = file.startsWith(appDir)
-          && opts.extensions.some(ext => file.endsWith(ext))
+      const isAppFile =
+        file.startsWith(appDir) && opts.extensions.some((ext) => file.endsWith(ext));
 
       if (isAppFile) {
-        const fileType = getAppRouterFileType(file)
+        const fileType = getAppRouterFileType(file);
 
         if (fileType) {
-          const existingTimer = pendingHMRUpdates.get(file)
-          if (existingTimer)
-            clearTimeout(existingTimer)
+          const existingTimer = pendingHMRUpdates.get(file);
+          if (existingTimer) clearTimeout(existingTimer);
 
           const timer = setTimeout(async () => {
-            pendingHMRUpdates.delete(file)
+            pendingHMRUpdates.delete(file);
 
-            const isNewRouteFile = !routeFiles.has(file)
-            const previousManifest = cachedManifestContent
-            cachedManifestContent = await generateAppRoutes(server.config.root, isNewRouteFile)
-            const manifestUpdated = previousManifest !== cachedManifestContent
-            const routePath = filePathToRoutePath(file, appDir)
+            const isNewRouteFile = !routeFiles.has(file);
+            const previousManifest = cachedManifestContent;
+            cachedManifestContent = await generateAppRoutes(server.config.root, isNewRouteFile);
+            const manifestUpdated = previousManifest !== cachedManifestContent;
+            const routePath = filePathToRoutePath(file, appDir);
 
-            let allRoutes: string[] = [routePath]
+            let allRoutes: string[] = [routePath];
             if (cachedManifestContent) {
               try {
-                const manifest = JSON.parse(cachedManifestContent)
-                allRoutes = manifest.routes.map((r: any) => r.path)
-              }
-              catch (error) {
-                console.error('[rari] Router: Failed to parse manifest for affected routes:', error)
+                const manifest = JSON.parse(cachedManifestContent);
+                allRoutes = manifest.routes.map((r: any) => r.path);
+              } catch (error) {
+                console.error(
+                  "[rari] Router: Failed to parse manifest for affected routes:",
+                  error,
+                );
               }
             }
 
-            const affectedRoutes = getAffectedRoutes(routePath, fileType, allRoutes)
+            const affectedRoutes = getAffectedRoutes(routePath, fileType, allRoutes);
 
-            let metadata: Record<string, any> | undefined
-            let metadataChanged = false
-            let methods: string[] | undefined
+            let metadata: Record<string, any> | undefined;
+            let metadataChanged = false;
+            let methods: string[] | undefined;
 
-            if (fileType === 'page' || fileType === 'layout') {
+            if (fileType === "page" || fileType === "layout") {
               try {
-                const fileContent = await fs.readFile(file, 'utf-8')
-                const extractedMetadata = extractMetadata(fileContent)
+                const fileContent = await fs.readFile(file, "utf-8");
+                const extractedMetadata = extractMetadata(fileContent);
 
                 if (extractedMetadata) {
-                  metadata = extractedMetadata
-                  metadataChanged = true
+                  metadata = extractedMetadata;
+                  metadataChanged = true;
                 }
-              }
-              catch (error) {
-                console.error('[rari] Router: Failed to extract metadata:', error)
+              } catch (error) {
+                console.error("[rari] Router: Failed to extract metadata:", error);
               }
             }
 
-            if (fileType === 'route') {
+            if (fileType === "route") {
               try {
-                const fileContent = await fs.readFile(file, 'utf-8')
-                methods = detectHttpMethods(fileContent)
+                const fileContent = await fs.readFile(file, "utf-8");
+                methods = detectHttpMethods(fileContent);
 
-                await notifyApiRouteInvalidation(path.relative(appDir, file))
-              }
-              catch (error) {
-                console.error('[rari] Router: Failed to detect HTTP methods:', error)
+                await notifyApiRouteInvalidation(path.relative(appDir, file));
+              } catch (error) {
+                console.error("[rari] Router: Failed to detect HTTP methods:", error);
               }
             }
 
@@ -420,70 +417,62 @@ export function rariRouter(options: RariRouterPluginOptions = {}): Plugin {
               metadata,
               metadataChanged,
               methods,
-            }
+            };
 
             server.ws.send({
-              type: 'custom',
-              event: 'rari:app-router-updated',
+              type: "custom",
+              event: "rari:app-router-updated",
               data: hmrData,
-            })
-          }, DEBOUNCE_DELAY)
+            });
+          }, DEBOUNCE_DELAY);
 
-          pendingHMRUpdates.set(file, timer)
+          pendingHMRUpdates.set(file, timer);
 
-          return []
+          return [];
         }
 
-        cachedManifestContent = await generateAppRoutes(server.config.root)
-        return []
+        cachedManifestContent = await generateAppRoutes(server.config.root);
+        return [];
       }
     },
 
     async closeBundle() {
-      for (const timer of pendingHMRUpdates.values())
-        clearTimeout(timer)
+      for (const timer of pendingHMRUpdates.values()) clearTimeout(timer);
 
-      pendingHMRUpdates.clear()
+      pendingHMRUpdates.clear();
 
-      const root = viteRoot || process.cwd()
-      const serverDir = path.resolve(root, opts.outDir, 'server')
-      const routesPath = path.join(serverDir, 'routes.json')
+      const root = viteRoot || process.cwd();
+      const serverDir = path.resolve(root, opts.outDir, "server");
+      const routesPath = path.join(serverDir, "routes.json");
 
       try {
-        const content = await fs.readFile(routesPath, 'utf-8')
-        const manifest = JSON.parse(content)
-        let updated = false
+        const content = await fs.readFile(routesPath, "utf-8");
+        const manifest = JSON.parse(content);
+        let updated = false;
 
         for (const route of manifest.routes) {
-          if (!route.isDynamic)
-            continue
+          if (!route.isDynamic) continue;
 
-          const componentId = route.componentId
-          if (!componentId)
-            continue
+          const componentId = route.componentId;
+          if (!componentId) continue;
 
-          const relativePath = componentId.startsWith('app/')
-            ? componentId.slice(4)
-            : componentId
-          const compiledPath = path.resolve(serverDir, 'app', `${relativePath}.js`)
+          const relativePath = componentId.startsWith("app/") ? componentId.slice(4) : componentId;
+          const compiledPath = path.resolve(serverDir, "app", `${relativePath}.js`);
 
           try {
-            const module = await import(/* @vite-ignore */ compiledPath)
-            if (typeof module.generateStaticParams === 'function') {
-              const params = await module.generateStaticParams()
+            const module = await import(/* @vite-ignore */ compiledPath);
+            if (typeof module.generateStaticParams === "function") {
+              const params = await module.generateStaticParams();
               if (Array.isArray(params) && params.length > 0) {
-                route.staticParams = params
-                updated = true
+                route.staticParams = params;
+                updated = true;
               }
             }
-          }
-          catch {}
+          } catch {}
         }
 
-        if (updated)
-          await fs.writeFile(routesPath, JSON.stringify(manifest, null, 2), 'utf-8')
-      }
-      catch {}
+        if (updated) await fs.writeFile(routesPath, JSON.stringify(manifest, null, 2), "utf-8");
+      } catch {}
     },
-  }
+  };
 }

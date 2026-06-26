@@ -1,4 +1,4 @@
-import type { Metadata } from 'rari'
+import type { Metadata } from "rari";
 
 export default async function BlogPage() {
   return (
@@ -14,10 +14,10 @@ export default async function BlogPage() {
         </a>
       </nav>
     </div>
-  )
+  );
 }
 
 export const metadata: Metadata = {
-  title: 'Blog',
-  description: 'Blog posts',
-}
+  title: "Blog",
+  description: "Blog posts",
+};

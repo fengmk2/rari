@@ -4,5 +4,5 @@ export default function ResetPage() {
       <h1>Reset Password</h1>
       <div data-testid="reset-content">Reset password flow</div>
     </div>
-  )
+  );
 }

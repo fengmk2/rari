@@ -1,12 +1,6 @@
-'use client'
+"use client";
 
-export default function NestedErrorBoundary({
-  error,
-  reset,
-}: {
-  error: Error
-  reset: () => void
-}) {
+export default function NestedErrorBoundary({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div data-testid="nested-error-boundary">
       <h2>Nested Error Caught!</h2>
@@ -15,5 +9,5 @@ export default function NestedErrorBoundary({
         Reset Nested
       </button>
     </div>
-  )
+  );
 }

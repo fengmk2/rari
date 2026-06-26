@@ -1,15 +1,11 @@
-import type { JSX, ReactNode } from 'react'
-import LinkIcon from '@/components/icons/Link'
-import {
-  MULTIPLE_DASHES_REGEX,
-  NON_WORD_REGEX,
-  WHITESPACE_REGEX,
-} from '@/lib/regex-constants'
+import type { JSX, ReactNode } from "react";
+import LinkIcon from "@/components/icons/Link";
+import { MULTIPLE_DASHES_REGEX, NON_WORD_REGEX, WHITESPACE_REGEX } from "@/lib/regex-constants";
 
 interface HeadingProps {
-  level: 1 | 2 | 3 | 4 | 5 | 6
-  children: ReactNode
-  id?: string
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+  children: ReactNode;
+  id?: string;
 }
 
 function slugify(text: string): string {
@@ -17,38 +13,36 @@ function slugify(text: string): string {
     .toString()
     .toLowerCase()
     .trim()
-    .replace(WHITESPACE_REGEX, '-')
-    .replace(NON_WORD_REGEX, '')
-    .replace(MULTIPLE_DASHES_REGEX, '-')
+    .replace(WHITESPACE_REGEX, "-")
+    .replace(NON_WORD_REGEX, "")
+    .replace(MULTIPLE_DASHES_REGEX, "-");
 }
 
 function extractTextContent(children: ReactNode): string {
-  if (typeof children === 'string')
-    return children
-  if (Array.isArray(children))
-    return children.map(extractTextContent).join('')
-  if (children && typeof children === 'object' && 'props' in children) {
-    const element = children as { props: { children?: ReactNode } }
-    return extractTextContent(element.props.children)
+  if (typeof children === "string") return children;
+  if (Array.isArray(children)) return children.map(extractTextContent).join("");
+  if (children && typeof children === "object" && "props" in children) {
+    const element = children as { props: { children?: ReactNode } };
+    return extractTextContent(element.props.children);
   }
 
-  return ''
+  return "";
 }
 
 const iconSizeMap = {
-  1: 'text-3xl',
-  2: 'text-2xl',
-  3: 'text-xl',
-  4: 'text-lg',
-  5: 'text-base',
-  6: 'text-sm',
-}
+  1: "text-3xl",
+  2: "text-2xl",
+  3: "text-xl",
+  4: "text-lg",
+  5: "text-base",
+  6: "text-sm",
+};
 
 export default function Heading({ level, children, id }: HeadingProps) {
-  const textContent = extractTextContent(children)
-  const slug = id || slugify(textContent)
-  const Tag = `h${level}` as keyof JSX.IntrinsicElements
-  const iconSize = iconSizeMap[level]
+  const textContent = extractTextContent(children);
+  const slug = id || slugify(textContent);
+  const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+  const iconSize = iconSizeMap[level];
 
   return (
     <Tag id={slug} className="group relative scroll-mt-20 flex items-center gap-2">
@@ -61,5 +55,5 @@ export default function Heading({ level, children, id }: HeadingProps) {
         <LinkIcon className="text-gray-400 hover:text-[#fd7e14]" />
       </a>
     </Tag>
-  )
+  );
 }

@@ -1,105 +1,108 @@
-import type { ComponentProps } from 'react'
-import type { BlogMetadata } from '@/lib/metadata'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { cwd } from 'node:process'
-import { evaluate } from '@mdx-js/mdx'
-import * as runtime from 'react/jsx-runtime'
-import remarkGfm from 'remark-gfm'
-import NotFoundPage from '@/app/not-found'
-import Breadcrumbs from '@/components/Breadcrumbs'
-import Heading from '@/components/Heading'
-import PageHeader from '@/components/PageHeader'
-import { getMDXComponents } from '@/lib/mdx-components'
-import { extractBlogMetadata } from '@/lib/metadata'
-import { remarkCodeBlock } from '@/lib/remark-codeblock'
-import { getHighlighter, SHIKI_THEME } from '@/lib/shiki'
+import type { ComponentProps } from "react";
+import type { BlogMetadata } from "@/lib/metadata";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { cwd } from "node:process";
+import { evaluate } from "@mdx-js/mdx";
+import * as runtime from "react/jsx-runtime";
+import remarkGfm from "remark-gfm";
+import NotFoundPage from "@/app/not-found";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import Heading from "@/components/Heading";
+import PageHeader from "@/components/PageHeader";
+import { getMDXComponents } from "@/lib/mdx-components";
+import { extractBlogMetadata } from "@/lib/metadata";
+import { remarkCodeBlock } from "@/lib/remark-codeblock";
+import { getHighlighter, SHIKI_THEME } from "@/lib/shiki";
 
 interface MdxRendererProps {
-  filePath: string
-  className?: string
-  pathname?: string
+  filePath: string;
+  className?: string;
+  pathname?: string;
 }
 
 function findContentFile(filePath: string): string | null {
   const searchPaths = [
-    resolve(cwd(), 'public', 'content', filePath),
-    resolve(cwd(), 'content', filePath),
-    resolve(cwd(), 'dist', 'content', filePath),
-  ]
+    resolve(cwd(), "public", "content", filePath),
+    resolve(cwd(), "content", filePath),
+    resolve(cwd(), "dist", "content", filePath),
+  ];
   for (const path of searchPaths) {
     try {
-      return readFileSync(path, 'utf-8')
-    }
-    catch {}
+      return readFileSync(path, "utf-8");
+    } catch {}
   }
 
-  return null
+  return null;
 }
 
-function PageHeaderWithFilePath({ filePath, ...props }: ComponentProps<typeof PageHeader> & { filePath: string }) {
-  return <PageHeader {...props} filePath={filePath} />
+function PageHeaderWithFilePath({
+  filePath,
+  ...props
+}: ComponentProps<typeof PageHeader> & { filePath: string }) {
+  return <PageHeader {...props} filePath={filePath} />;
 }
 
-function createMdxComponents(filePath: string, mdxComponents: Record<string, any>, blogMetadata?: BlogMetadata) {
+function createMdxComponents(
+  filePath: string,
+  mdxComponents: Record<string, any>,
+  blogMetadata?: BlogMetadata,
+) {
   return {
     ...mdxComponents,
-    PageHeader: (props: any) => <PageHeaderWithFilePath {...props} filePath={filePath} {...blogMetadata} />, // oxlint-disable-line react/component-hook-factories
+    PageHeader: (props: any) => (
+      <PageHeaderWithFilePath {...props} filePath={filePath} {...blogMetadata} />
+    ), // oxlint-disable-line react/component-hook-factories
     h2: (props: any) => <Heading level={2} {...props} />,
     h3: (props: any) => <Heading level={3} {...props} />,
     h4: (props: any) => <Heading level={4} {...props} />,
     h5: (props: any) => <Heading level={5} {...props} />,
     h6: (props: any) => <Heading level={6} {...props} />,
-  }
+  };
 }
 
 export default async function MdxRenderer({
   filePath,
-  className = '',
+  className = "",
   pathname,
 }: MdxRendererProps) {
-  const content = findContentFile(filePath)
-  if (!content)
-    return <NotFoundPage />
+  const content = findContentFile(filePath);
+  if (!content) return <NotFoundPage />;
 
   // eslint-disable-next-line react/error-boundaries
   try {
-    const highlighter = await getHighlighter()
+    const highlighter = await getHighlighter();
     const remarkPlugins: any[] = [
       remarkGfm,
-      [
-        remarkCodeBlock,
-        { highlighter, theme: SHIKI_THEME },
-      ],
-    ]
+      [remarkCodeBlock, { highlighter, theme: SHIKI_THEME }],
+    ];
 
     const { default: MDXContent } = await evaluate(content, {
       ...runtime,
       baseUrl: import.meta.url,
       development: false,
       remarkPlugins,
-    })
+    });
 
-    const mdxComponents = getMDXComponents(content)
-    const isBlogPost = filePath.startsWith('blog/')
-    const blogMetadata = isBlogPost ? extractBlogMetadata(content) : undefined
-    const allComponents = createMdxComponents(filePath, mdxComponents, blogMetadata)
+    const mdxComponents = getMDXComponents(content);
+    const isBlogPost = filePath.startsWith("blog/");
+    const blogMetadata = isBlogPost ? extractBlogMetadata(content) : undefined;
+    const allComponents = createMdxComponents(filePath, mdxComponents, blogMetadata);
 
     return (
       <div
         className={`prose prose-invert max-w-none overflow-hidden ${className}`}
         style={{
-          wordWrap: 'break-word',
-          overflowWrap: 'break-word',
+          wordWrap: "break-word",
+          overflowWrap: "break-word",
         }}
       >
         {pathname && <Breadcrumbs pathname={pathname} />}
         <MDXContent components={allComponents} />
       </div>
-    )
-  }
-  catch (error) {
-    console.error('Error rendering MDX:', error)
-    throw error
+    );
+  } catch (error) {
+    console.error("Error rendering MDX:", error);
+    throw error;
   }
 }

@@ -15,7 +15,7 @@ export default function ServerDataLoading() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[1, 2, 3].map(i => (
+        {[1, 2, 3].map((i) => (
           <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="h-6 bg-gray-200 rounded w-3/4 mb-3 animate-pulse" />
             <div className="h-4 bg-gray-200 rounded w-full mb-2 animate-pulse" />
@@ -31,5 +31,5 @@ export default function ServerDataLoading() {
         </div>
       </div>
     </div>
-  )
+  );
 }

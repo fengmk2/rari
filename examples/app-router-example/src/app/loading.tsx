@@ -7,5 +7,5 @@ export default function RootLoading() {
         <p className="text-sm text-gray-600">Please wait while we load the page</p>
       </div>
     </div>
-  )
+  );
 }

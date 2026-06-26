@@ -1,8 +1,8 @@
-import { Suspense } from 'react'
+import { Suspense } from "react";
 
 async function SlowComponent() {
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  return <div>Slow data loaded!</div>
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  return <div>Slow data loaded!</div>;
 }
 
 export default function SuspenseTestPage() {
@@ -13,5 +13,5 @@ export default function SuspenseTestPage() {
         <SlowComponent />
       </Suspense>
     </div>
-  )
+  );
 }

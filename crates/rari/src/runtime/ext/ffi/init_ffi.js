@@ -1,9 +1,9 @@
-import { core } from 'ext:core/mod.js'
+import { core } from "ext:core/mod.js";
 
-const ffi = core.loadExtScript('ext:deno_ffi/00_ffi.js')
+const ffi = core.loadExtScript("ext:deno_ffi/00_ffi.js");
 
-globalThis.Deno.dlopen = ffi.dlopen
-globalThis.Deno.UnsafeCallback = ffi.UnsafeCallback
-globalThis.Deno.UnsafePointer = ffi.UnsafePointer
-globalThis.Deno.UnsafePointerView = ffi.UnsafePointerView
-globalThis.Deno.UnsafeFnPointer = ffi.UnsafeFnPointer
+globalThis.Deno.dlopen = ffi.dlopen;
+globalThis.Deno.UnsafeCallback = ffi.UnsafeCallback;
+globalThis.Deno.UnsafePointer = ffi.UnsafePointer;
+globalThis.Deno.UnsafePointerView = ffi.UnsafePointerView;
+globalThis.Deno.UnsafeFnPointer = ffi.UnsafeFnPointer;

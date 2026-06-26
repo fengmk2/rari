@@ -1,19 +1,18 @@
-if (!globalThis['~react'])
-  globalThis['~react'] = {}
-globalThis['~react'].jsxRuntime = globalThis['~react'].jsxRuntime || {
+if (!globalThis["~react"]) globalThis["~react"] = {};
+globalThis["~react"].jsxRuntime = globalThis["~react"].jsxRuntime || {
   jsx(type, props, key) {
     const element = {
-      $$typeof: Symbol.for('react.transitional.element'),
+      $$typeof: Symbol.for("react.transitional.element"),
       type,
       props: props || {},
       key: key || null,
-    }
+    };
     if (props && props.children !== undefined)
-      element.props = { ...element.props, children: props.children }
+      element.props = { ...element.props, children: props.children };
 
-    return element
+    return element;
   },
   jsxs(type, props, key) {
-    return globalThis['~react'].jsxRuntime.jsx(type, props, key)
+    return globalThis["~react"].jsxRuntime.jsx(type, props, key);
   },
-}
+};
