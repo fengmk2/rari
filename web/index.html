@@ -7,14 +7,14 @@
       if (import.meta.env.VITE_SENTRY_DSN) {
         const loadSentry = () => {
           import("/src/lib/sentry-init.ts");
-          document.removeEventListener('click', loadSentry);
-          document.removeEventListener('scroll', loadSentry);
-          document.removeEventListener('keydown', loadSentry);
+          document.removeEventListener("click", loadSentry);
+          document.removeEventListener("scroll", loadSentry);
+          document.removeEventListener("keydown", loadSentry);
         };
 
-        document.addEventListener('click', loadSentry, { once: true, passive: true });
-        document.addEventListener('scroll', loadSentry, { once: true, passive: true });
-        document.addEventListener('keydown', loadSentry, { once: true, passive: true });
+        document.addEventListener("click", loadSentry, { once: true, passive: true });
+        document.addEventListener("scroll", loadSentry, { once: true, passive: true });
+        document.addEventListener("keydown", loadSentry, { once: true, passive: true });
         setTimeout(loadSentry, 5000);
       }
     </script>

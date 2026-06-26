@@ -1,19 +1,21 @@
-import { formatCompactNumber } from '@/lib/format'
-import { getLatestCommitHash, getRepoStars } from '@/lib/github'
-import { container } from '@/lib/styles'
-import Bluesky from './icons/Bluesky'
-import Discord from './icons/Discord'
-import Github from './icons/Github'
+import { formatCompactNumber } from "@/lib/format";
+import { getLatestCommitHash, getRepoStars } from "@/lib/github";
+import { container } from "@/lib/styles";
+import Bluesky from "./icons/Bluesky";
+import Discord from "./icons/Discord";
+import Github from "./icons/Github";
 
 export default async function Footer() {
   // eslint-disable-next-line react/purity
-  const currentYear = new Date().getFullYear()
-  const stars = await getRepoStars()
-  const commitHash = await getLatestCommitHash()
+  const currentYear = new Date().getFullYear();
+  const stars = await getRepoStars();
+  const commitHash = await getLatestCommitHash();
 
   return (
     <footer className="w-full bg-[#0d1117] rounded-t-md">
-      <div className={`${container.marketing} py-8 lg:py-4 lg:flex lg:items-center lg:justify-between lg:gap-x-3`}>
+      <div
+        className={`${container.marketing} py-8 lg:py-4 lg:flex lg:items-center lg:justify-between lg:gap-x-3`}
+      >
         <div className="flex items-center justify-center lg:justify-start lg:flex-1 gap-x-1.5 mt-3 lg:mt-0 lg:order-1">
           <p className="text-gray-300 text-sm">
             <a
@@ -23,16 +25,11 @@ export default async function Footer() {
               className="hover:underline hover:text-gray-200 transition-colors"
             >
               MIT License
-            </a>
-            {' '}
-            ©
-            {' '}
-            {currentYear}
-            {' '}
-            Ryan Skinner
+            </a>{" "}
+            © {currentYear} Ryan Skinner
             {commitHash && (
               <>
-                {' '}
+                {" "}
                 (
                 <a
                   href={`https://github.com/rari-build/rari/commit/${commitHash}`}
@@ -59,7 +56,9 @@ export default async function Footer() {
             <span className="absolute inset-0 bg-linear-to-r from-[#fd7e14]/10 to-[#e8590c]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             <Github className="w-5 h-5 relative z-10" />
             {stars !== null && (
-              <span className="text-xs text-gray-400 relative z-10">{formatCompactNumber(stars)}</span>
+              <span className="text-xs text-gray-400 relative z-10">
+                {formatCompactNumber(stars)}
+              </span>
             )}
             <span className="sr-only">rari on GitHub</span>
           </a>
@@ -90,5 +89,5 @@ export default async function Footer() {
         </div>
       </div>
     </footer>
-  )
+  );
 }

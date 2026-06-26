@@ -1,151 +1,142 @@
-import type { Plugin } from 'vite-plus'
-import { promises as fs } from 'node:fs'
-import path from 'node:path'
-import process from 'node:process'
+import type { Plugin } from "vite-plus";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import process from "node:process";
 
 export interface ProxyPluginOptions {
-  root?: string
-  srcDir?: string
-  proxyFileName?: string
-  extensions?: string[]
-  verbose?: boolean
+  root?: string;
+  srcDir?: string;
+  proxyFileName?: string;
+  extensions?: string[];
+  verbose?: boolean;
 }
 
 interface ProxyFileInfo {
-  filePath: string
-  exists: boolean
-  relativePath: string
+  filePath: string;
+  exists: boolean;
+  relativePath: string;
 }
 
 export function rariProxy(options: ProxyPluginOptions = {}): Plugin {
   const {
     root = process.cwd(),
-    srcDir = 'src',
-    proxyFileName = 'proxy',
-    extensions = ['.ts', '.tsx', '.js', '.jsx', '.mts', '.mjs'],
+    srcDir = "src",
+    proxyFileName = "proxy",
+    extensions = [".ts", ".tsx", ".js", ".jsx", ".mts", ".mjs"],
     verbose = false,
-  } = options
+  } = options;
 
-  let proxyFile: ProxyFileInfo | null = null
+  let proxyFile: ProxyFileInfo | null = null;
 
   const log = (message: string) => {
-    if (verbose)
-      console.warn(`[rari] Proxy: ${message}`)
-  }
+    if (verbose) console.warn(`[rari] Proxy: ${message}`);
+  };
 
   async function findProxyFile(): Promise<ProxyFileInfo | null> {
     for (const ext of extensions) {
-      const fileName = `${proxyFileName}${ext}`
-      const filePath = path.join(root, fileName)
+      const fileName = `${proxyFileName}${ext}`;
+      const filePath = path.join(root, fileName);
 
       try {
-        await fs.access(filePath)
-        log(`Found proxy file: ${fileName}`)
+        await fs.access(filePath);
+        log(`Found proxy file: ${fileName}`);
         return {
           filePath,
           exists: true,
           relativePath: fileName,
-        }
-      }
-      catch {}
+        };
+      } catch {}
     }
 
-    const srcPath = path.join(root, srcDir)
+    const srcPath = path.join(root, srcDir);
     try {
-      await fs.access(srcPath)
+      await fs.access(srcPath);
 
       for (const ext of extensions) {
-        const fileName = `${proxyFileName}${ext}`
-        const filePath = path.join(srcPath, fileName)
+        const fileName = `${proxyFileName}${ext}`;
+        const filePath = path.join(srcPath, fileName);
 
         try {
-          await fs.access(filePath)
-          log(`Found proxy file: ${path.join(srcDir, fileName)}`)
+          await fs.access(filePath);
+          log(`Found proxy file: ${path.join(srcDir, fileName)}`);
           return {
             filePath,
             exists: true,
             relativePath: path.join(srcDir, fileName),
-          }
-        }
-        catch {}
+          };
+        } catch {}
       }
-    }
-    catch {}
+    } catch {}
 
-    return null
+    return null;
   }
 
   return {
-    name: 'rari:proxy',
+    name: "rari:proxy",
 
     async buildStart() {
-      proxyFile = await findProxyFile()
+      proxyFile = await findProxyFile();
 
-      if (proxyFile)
-        log(`Proxy enabled: ${proxyFile.relativePath}`)
-      else
-        log('No proxy file found')
+      if (proxyFile) log(`Proxy enabled: ${proxyFile.relativePath}`);
+      else log("No proxy file found");
     },
 
     configureServer(server) {
-      if (!proxyFile)
-        return
+      if (!proxyFile) return;
 
-      server.watcher.add(proxyFile.filePath)
+      server.watcher.add(proxyFile.filePath);
 
-      server.watcher.on('change', (file) => {
+      server.watcher.on("change", (file) => {
         if (file === proxyFile?.filePath) {
-          log('Proxy file changed, reloading...')
+          log("Proxy file changed, reloading...");
           server.ws.send({
-            type: 'custom',
-            event: 'rari:proxy-reload',
-          })
+            type: "custom",
+            event: "rari:proxy-reload",
+          });
         }
-      })
+      });
     },
 
     async handleHotUpdate({ file, server }) {
       if (proxyFile && file === proxyFile.filePath) {
-        log('Hot reloading proxy...')
+        log("Hot reloading proxy...");
 
         server.ws.send({
-          type: 'custom',
-          event: 'rari:proxy-reload',
+          type: "custom",
+          event: "rari:proxy-reload",
           data: {
             file: proxyFile.relativePath,
           },
-        })
+        });
 
-        return []
+        return [];
       }
     },
-  }
+  };
 }
 
 export async function hasProxyFile(
   root: string = process.cwd(),
-  srcDir: string = 'src',
+  srcDir: string = "src",
 ): Promise<boolean> {
-  const extensions = ['.ts', '.tsx', '.js', '.jsx', '.mts', '.mjs']
-  const proxyFileName = 'proxy'
+  const extensions = [".ts", ".tsx", ".js", ".jsx", ".mts", ".mjs"];
+  const proxyFileName = "proxy";
 
   for (const ext of extensions) {
-    const filePath = path.join(root, `${proxyFileName}${ext}`)
+    const filePath = path.join(root, `${proxyFileName}${ext}`);
     try {
-      await fs.access(filePath)
-      return true
-    }
-    catch {}
+      await fs.access(filePath);
+      return true;
+    } catch {}
   }
 
   for (const ext of extensions) {
-    const filePath = path.join(root, srcDir, `${proxyFileName}${ext}`)
+    const filePath = path.join(root, srcDir, `${proxyFileName}${ext}`);
     try {
-      await fs.access(filePath)
-      return true
-    }
-    catch {}
+      await fs.access(filePath);
+      return true;
+    } catch {}
   }
 
-  return false
+  return false;
 }

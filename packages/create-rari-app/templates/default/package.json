@@ -1,13 +1,9 @@
 {
   "name": "{{PROJECT_NAME}}",
-  "type": "module",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.8.0",
   "description": "A Runtime Accelerated Rendering Infrastructure (rari) application",
-  "engines": {
-    "node": ">=22.18.0"
-  },
+  "type": "module",
   "scripts": {
     "build": "rari build",
     "dev": "rari dev",
@@ -30,5 +26,9 @@
     "@typescript/native-preview": "^7.0.0-dev.20260618.1",
     "tailwindcss": "^4.3.1",
     "vite-plus": "^0.2.1"
-  }
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "packageManager": "pnpm@11.8.0"
 }

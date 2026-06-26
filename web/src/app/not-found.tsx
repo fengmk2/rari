@@ -1,4 +1,4 @@
-import { container } from '@/lib/styles'
+import { container } from "@/lib/styles";
 
 export default function NotFound() {
   return (
@@ -16,5 +16,5 @@ export default function NotFound() {
         </div>
       </div>
     </div>
-  )
+  );
 }

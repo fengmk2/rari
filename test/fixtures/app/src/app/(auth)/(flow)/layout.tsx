@@ -1,4 +1,4 @@
-import type { LayoutProps } from 'rari'
+import type { LayoutProps } from "rari";
 
 export default function FlowGroupLayout({ children }: LayoutProps) {
   return (
@@ -6,5 +6,5 @@ export default function FlowGroupLayout({ children }: LayoutProps) {
       <div data-testid="flow-group-banner">Flow Group Banner</div>
       <div data-testid="flow-group-children">{children}</div>
     </div>
-  )
+  );
 }

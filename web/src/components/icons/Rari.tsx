@@ -1,4 +1,4 @@
-import type { SVGProps } from 'react'
+import type { SVGProps } from "react";
 
 export default function Rari(props: SVGProps<SVGSVGElement>) {
   return (
@@ -19,5 +19,5 @@ export default function Rari(props: SVGProps<SVGSVGElement>) {
         </g>
       </g>
     </svg>
-  )
+  );
 }

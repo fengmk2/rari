@@ -1,9 +1,7 @@
-export function clearTimer<T extends NodeJS.Timeout | null | undefined>(
-  timer: T,
-): null {
+export function clearTimer<T extends NodeJS.Timeout | null | undefined>(timer: T): null {
   if (timer) {
-    clearTimeout(timer)
+    clearTimeout(timer);
   }
 
-  return null
+  return null;
 }

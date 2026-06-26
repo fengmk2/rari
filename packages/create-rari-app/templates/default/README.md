@@ -34,6 +34,7 @@ This rari application is pre-configured for cloud deployment.
 ### Railway
 
 1. Push to GitHub:
+
 ```bash
 git add .
 git commit -m "Initial commit"
@@ -62,6 +63,7 @@ git push origin main
 ### Render
 
 1. Push to GitHub:
+
 ```bash
 git add .
 git commit -m "Initial commit"

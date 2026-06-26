@@ -1,6 +1,6 @@
 name: Question / Help
 description: Ask a question or get help with using rari
-title: '[Question]: '
+title: "[Question]: "
 labels: [question, help-wanted]
 assignees: []
 
@@ -127,9 +127,9 @@ body:
       label: Experience Level
       description: How would you describe your experience with rari and React?
       options:
-        - 'New to rari, experienced with React'
+        - "New to rari, experienced with React"
         - New to both rari and React
-        - 'Familiar with rari, experienced with React'
+        - "Familiar with rari, experienced with React"
         - Experienced with both rari and React
         - Expert level
     validations:

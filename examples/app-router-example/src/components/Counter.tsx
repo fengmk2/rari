@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
+import { useState } from "react";
 
 export default function Counter() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   return (
     <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm text-center">
@@ -35,5 +35,5 @@ export default function Counter() {
         This component runs on the client and maintains state
       </p>
     </div>
-  )
+  );
 }

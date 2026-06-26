@@ -1,6 +1,6 @@
 name: Performance Issue
 description: Report a performance regression or performance-related issue
-title: '[Performance]: '
+title: "[Performance]: "
 labels: [performance, needs-triage]
 assignees: []
 

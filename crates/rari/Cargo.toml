@@ -13,7 +13,7 @@ keywords = { workspace = true }
 categories = { workspace = true }
 
 [lib]
-crate-type = [ "rlib" ]
+crate-type = ["rlib"]
 
 [dependencies]
 # === Core Runtime Dependencies ===
@@ -79,12 +79,7 @@ tokio = { version = "1.52.3", features = [
   "net",
   "io-util",
 ] }
-async-compression = { version = "0.4.42", features = [
-  "tokio",
-  "zstd",
-  "brotli",
-  "gzip",
-] }
+async-compression = { version = "0.4.42", features = ["tokio", "zstd", "brotli", "gzip"] }
 
 # === Serialization ===
 serde = { workspace = true }
@@ -99,15 +94,9 @@ reqwest = { version = "0.13.4", default-features = false, features = [
   "rustls",
   "blocking",
 ] }
-axum = { version = "0.8.9", features = [
-  "ws",
-  "macros"
-] }
-tower = { version = "0.5.3", default-features = false, features = [ "util" ] }
-tower-http = { version = "0.7.0", features = [
-  "fs",
-  "compression-full"
-] }
+axum = { version = "0.8.9", features = ["ws", "macros"] }
+tower = { version = "0.5.3", default-features = false, features = ["util"] }
+tower-http = { version = "0.7.0", features = ["fs", "compression-full"] }
 colored = { workspace = true }
 url = { workspace = true }
 urlencoding = "2.1.3"
@@ -116,7 +105,7 @@ tungstenite = "0.29.0"
 
 # === Utilities ===
 rari-utils = { workspace = true }
-bytes = { version = "1.12.0", features = [ "serde" ] }
+bytes = { version = "1.12.0", features = ["serde"] }
 cow-utils = { workspace = true }
 dashmap = "6.2.1"
 parking_lot = "0.12.5"
@@ -124,8 +113,8 @@ smallvec = "1.15.2"
 regex = { workspace = true }
 rustc-hash = { workspace = true }
 lru = "0.18.0"
-uuid = { version = "1.23.3", features = [ "v4" ] }
-redis = { version = "1.2.4", default-features = false, features = [ "tokio-comp" ] }
+uuid = { version = "1.23.3", features = ["v4"] }
+redis = { version = "1.2.4", default-features = false, features = ["tokio-comp"] }
 
 # === Image Processing & Layout ===
 image = { version = "0.25.10", default-features = false, features = [
@@ -133,7 +122,7 @@ image = { version = "0.25.10", default-features = false, features = [
   "png",
   "gif",
   "webp",
-  "avif"
+  "avif",
 ] }
 webp = "0.3.1"
 
@@ -146,12 +135,9 @@ wuff = "0.2.5"
 resvg = "0.47.0"
 
 # === System Integration ===
-hyper-util = { version = "0.1.20", features = [
-  "tokio",
-  "client-legacy"
-] }
+hyper-util = { version = "0.1.20", features = ["tokio", "client-legacy"] }
 libc = "0.2.182"
-nix = { version = "=0.30.1", features = [ "term" ] }
+nix = { version = "=0.30.1", features = ["term"] }
 sys_traits = "=0.1.28"
 
 # === Development Tools ===
@@ -171,13 +157,10 @@ windows-sys = { version = "=0.59.0", features = [
 # === CLI & Logging ===
 clap = { workspace = true }
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.23", features = [ "env-filter" ] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # === TLS & Crypto ===
-rustls = { version = "=0.23.40", default-features = false, features = [
-  "std",
-  "aws_lc_rs",
-] }
+rustls = { version = "=0.23.40", default-features = false, features = ["std", "aws_lc_rs"] }
 sha2 = { workspace = true }
 hex = { workspace = true }
 

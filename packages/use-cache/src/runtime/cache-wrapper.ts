@@ -1,17 +1,17 @@
-import { createHash } from 'node:crypto'
-import { serialize } from 'node:v8'
-import { getStorage } from './cache-storage-registry'
-import { deterministicStringify } from './deterministic-stringify'
+import { createHash } from "node:crypto";
+import { serialize } from "node:v8";
+import { getStorage } from "./cache-storage-registry";
+import { deterministicStringify } from "./deterministic-stringify";
 
-type CacheableFunction<Args extends unknown[]> = (...args: Args) => unknown | Promise<unknown>
+type CacheableFunction<Args extends unknown[]> = (...args: Args) => unknown | Promise<unknown>;
 
-const CACHE_ENTRY_TTL_MS = 5 * 60 * 1000
+const CACHE_ENTRY_TTL_MS = 5 * 60 * 1000;
 
-const pending = new Map<string, Promise<unknown>>()
+const pending = new Map<string, Promise<unknown>>();
 
 function cacheKey(kind: string, id: string, args: readonly unknown[]): string {
-  const str = deterministicStringify({ kind, id, args })
-  return createHash('sha256').update(str, 'utf8').digest('hex')
+  const str = deterministicStringify({ kind, id, args });
+  return createHash("sha256").update(str, "utf8").digest("hex");
 }
 
 export function $$cache__<Args extends unknown[]>(
@@ -21,37 +21,34 @@ export function $$cache__<Args extends unknown[]>(
   fn: CacheableFunction<Args>,
   args: Args,
 ): unknown {
-  const key = cacheKey(kind, id, args)
+  const key = cacheKey(kind, id, args);
 
-  const inflight = pending.get(key)
+  const inflight = pending.get(key);
   if (inflight) {
-    throw inflight
+    throw inflight;
   }
 
-  const storage = getStorage(kind)
+  const storage = getStorage(kind);
 
   const promise = Promise.resolve()
     .then(async () => {
-      const cached = await storage.read(key)
+      const cached = await storage.read(key);
       if (cached !== null) {
-        return cached.value
+        return cached.value;
       }
 
-      const value = await fn(...args)
-      await storage.write(key, value, CACHE_ENTRY_TTL_MS)
-      return value
+      const value = await fn(...args);
+      await storage.write(key, value, CACHE_ENTRY_TTL_MS);
+      return value;
     })
     .finally(() => {
-      pending.delete(key)
-    })
+      pending.delete(key);
+    });
 
-  pending.set(key, promise)
-  throw promise
+  pending.set(key, promise);
+  throw promise;
 }
 
-export function encodeBoundArgs(
-  refId: string,
-  ...args: unknown[]
-): string {
-  return serialize([refId, ...args]).toString('base64')
+export function encodeBoundArgs(refId: string, ...args: unknown[]): string {
+  return serialize([refId, ...args]).toString("base64");
 }

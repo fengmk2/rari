@@ -1,23 +1,23 @@
-'use client'
+"use client";
 
-import type { PackageManager } from '@/providers/PackageManagerProvider'
-import { highlightCommand } from '@/lib/highlight-command'
-import { useClipboard } from '@/lib/use-clipboard'
-import { usePackageManager } from '@/providers/PackageManagerProvider'
-import Bun from './icons/Bun'
-import Check from './icons/Check'
-import Copy from './icons/Copy'
-import Npm from './icons/Npm'
-import Pnpm from './icons/Pnpm'
-import Yarn from './icons/Yarn'
+import type { PackageManager } from "@/providers/PackageManagerProvider";
+import { highlightCommand } from "@/lib/highlight-command";
+import { useClipboard } from "@/lib/use-clipboard";
+import { usePackageManager } from "@/providers/PackageManagerProvider";
+import Bun from "./icons/Bun";
+import Check from "./icons/Check";
+import Copy from "./icons/Copy";
+import Npm from "./icons/Npm";
+import Pnpm from "./icons/Pnpm";
+import Yarn from "./icons/Yarn";
 
 interface PackageManagerTabsProps {
   commands: {
-    pnpm: string
-    npm: string
-    yarn: string
-    bun: string
-  }
+    pnpm: string;
+    npm: string;
+    yarn: string;
+    bun: string;
+  };
 }
 
 const packageManagerIcons: Record<PackageManager, React.ComponentType<{ className?: string }>> = {
@@ -25,17 +25,21 @@ const packageManagerIcons: Record<PackageManager, React.ComponentType<{ classNam
   npm: Npm,
   yarn: Yarn,
   bun: Bun,
-}
+};
 
 export default function PackageManagerTabs({ commands }: PackageManagerTabsProps) {
-  const { packageManager: activeTab, setPackageManager: setActiveTab } = usePackageManager()
-  const { copied, copyToClipboard } = useClipboard()
+  const { packageManager: activeTab, setPackageManager: setActiveTab } = usePackageManager();
+  const { copied, copyToClipboard } = useClipboard();
 
   return (
     <div className="not-prose my-6 relative group overflow-hidden rounded-md border border-[#30363d] bg-[#0d1117] max-w-full">
-      <div className="flex items-center gap-1 bg-[#161b22] px-2 py-1.5 border-b border-[#30363d] overflow-x-auto" role="tablist" aria-label="Package manager selection">
+      <div
+        className="flex items-center gap-1 bg-[#161b22] px-2 py-1.5 border-b border-[#30363d] overflow-x-auto"
+        role="tablist"
+        aria-label="Package manager selection"
+      >
         {(Object.keys(commands) as PackageManager[]).map((pm) => {
-          const Icon = packageManagerIcons[pm]
+          const Icon = packageManagerIcons[pm];
           return (
             <button
               key={pm}
@@ -43,10 +47,11 @@ export default function PackageManagerTabs({ commands }: PackageManagerTabsProps
               className={`
               relative inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded
               transition-colors duration-200 shrink-0
-              ${activeTab === pm
-              ? 'bg-[#0d1117] text-white'
-              : 'text-gray-300 hover:text-gray-100 hover:bg-[#21262d]'
-            }
+              ${
+                activeTab === pm
+                  ? "bg-[#0d1117] text-white"
+                  : "text-gray-300 hover:text-gray-100 hover:bg-[#21262d]"
+              }
             `}
               type="button"
               role="tab"
@@ -57,11 +62,16 @@ export default function PackageManagerTabs({ commands }: PackageManagerTabsProps
               <Icon className="w-4 h-4" />
               <span className="truncate font-medium">{pm}</span>
             </button>
-          )
+          );
         })}
       </div>
 
-      <div className="relative" role="tabpanel" id={`${activeTab}-panel`} aria-labelledby={`${activeTab}-tab`}>
+      <div
+        className="relative"
+        role="tabpanel"
+        id={`${activeTab}-panel`}
+        aria-labelledby={`${activeTab}-tab`}
+      >
         <span className="absolute top-2 right-2 text-xs text-gray-400 font-mono opacity-100 lg:group-hover:opacity-0 transition-opacity duration-200 z-10">
           bash
         </span>
@@ -71,13 +81,7 @@ export default function PackageManagerTabs({ commands }: PackageManagerTabsProps
           type="button"
           aria-label="Copy code to clipboard"
         >
-          {copied
-            ? (
-                <Check className="w-4 h-4 text-green-500" />
-              )
-            : (
-                <Copy className="w-4 h-4" />
-              )}
+          {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
         </button>
 
         <pre className="font-mono text-sm px-4 py-3 pr-12 m-0 overflow-x-auto max-w-full">
@@ -88,5 +92,5 @@ export default function PackageManagerTabs({ commands }: PackageManagerTabsProps
         </pre>
       </div>
     </div>
-  )
+  );
 }

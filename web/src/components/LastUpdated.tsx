@@ -1,23 +1,20 @@
-import { formatDate } from '@/lib/date'
-import { getLastCommitDate } from '@/lib/github'
+import { formatDate } from "@/lib/date";
+import { getLastCommitDate } from "@/lib/github";
 
 interface LastUpdatedProps {
-  filePath: string
+  filePath: string;
 }
 
 export default async function LastUpdated({ filePath }: LastUpdatedProps) {
-  const lastCommitDate = await getLastCommitDate(filePath)
+  const lastCommitDate = await getLastCommitDate(filePath);
 
-  if (!lastCommitDate)
-    return null
+  if (!lastCommitDate) return null;
 
-  const displayDate = formatDate(lastCommitDate)
+  const displayDate = formatDate(lastCommitDate);
 
   return (
     <div className="text-sm text-gray-300 mt-2 pb-4 border-b border-[#30363d]">
-      Last updated:
-      {' '}
-      {displayDate}
+      Last updated: {displayDate}
     </div>
-  )
+  );
 }

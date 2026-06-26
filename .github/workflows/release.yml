@@ -3,11 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
-      - 'rari@*'
-      - 'create-rari-app@*'
-      - '@rari/use-cache@*'
-      - 'use-cache-binaries@*'
+      - "v*"
+      - "rari@*"
+      - "create-rari-app@*"
+      - "@rari/use-cache@*"
+      - "use-cache-binaries@*"
   workflow_dispatch:
 
 permissions:
@@ -142,7 +142,7 @@ jobs:
         if: runner.os == 'macOS'
         run: cargo build --release --target ${{ matrix.target }} --bin rari
         env:
-          RUSTFLAGS: '' # Override .cargo/config.toml to use default linker
+          RUSTFLAGS: "" # Override .cargo/config.toml to use default linker
 
       - name: Build binary (Windows)
         if: runner.os == 'Windows'
@@ -360,7 +360,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
-          npm_config_trust_lockfile: 'true'
+          npm_config_trust_lockfile: "true"
 
       - name: Build package
         run: pnpm --filter "${{ steps.pkg.outputs.name }}" build
@@ -632,7 +632,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
-          npm_config_trust_lockfile: 'true'
+          npm_config_trust_lockfile: "true"
 
       - name: Build package
         run: pnpm --filter "@rari/use-cache" build

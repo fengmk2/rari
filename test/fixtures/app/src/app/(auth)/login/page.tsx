@@ -4,5 +4,5 @@ export default function LoginPage() {
       <h1>Login</h1>
       <div data-testid="login-form">Login form goes here</div>
     </div>
-  )
+  );
 }

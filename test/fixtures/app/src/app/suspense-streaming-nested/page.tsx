@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
-import { Suspense } from 'react'
-import { sleep } from '../../utils/test-helpers'
+import type { ReactNode } from "react";
+import { Suspense } from "react";
+import { sleep } from "../../utils/test-helpers";
 
 export default function NestedSuspensePage() {
   return (
@@ -14,41 +14,39 @@ export default function NestedSuspensePage() {
         </OuterComponent>
       </Suspense>
     </div>
-  )
+  );
 }
 
 interface OuterProps {
-  delay: number
-  children: ReactNode
+  delay: number;
+  children: ReactNode;
 }
 
 async function OuterComponent({ delay, children }: OuterProps) {
-  await sleep(delay)
+  await sleep(delay);
   // eslint-disable-next-line react/purity
-  const timestamp = new Date().toISOString()
+  const timestamp = new Date().toISOString();
   return (
     <div data-testid="outer-content">
       <div>Outer content</div>
       <div data-testid="outer-timestamp">{timestamp}</div>
       {children}
     </div>
-  )
+  );
 }
 
 interface InnerProps {
-  delay: number
-  name: string
+  delay: number;
+  name: string;
 }
 
 async function InnerComponent({ delay, name }: InnerProps) {
-  await sleep(delay)
+  await sleep(delay);
   // eslint-disable-next-line react/purity
-  const timestamp = new Date().toISOString()
+  const timestamp = new Date().toISOString();
   return (
     <div data-testid={`component-${name.toLowerCase()}`}>
-      {name}
-      :
-      {timestamp}
+      {name}:{timestamp}
     </div>
-  )
+  );
 }

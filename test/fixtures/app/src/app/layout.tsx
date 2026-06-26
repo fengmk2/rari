@@ -1,4 +1,4 @@
-import type { LayoutProps, Metadata } from 'rari'
+import type { LayoutProps, Metadata } from "rari";
 
 export default function RootLayout({ children }: LayoutProps) {
   return (
@@ -47,10 +47,10 @@ export default function RootLayout({ children }: LayoutProps) {
       </nav>
       <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
     </div>
-  )
+  );
 }
 
 export const metadata: Metadata = {
-  title: 'Test App',
-  description: 'rari test fixture app',
-}
+  title: "Test App",
+  description: "rari test fixture app",
+};

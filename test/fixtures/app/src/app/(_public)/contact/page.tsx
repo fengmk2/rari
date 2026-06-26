@@ -1,4 +1,4 @@
-import { Callout } from '@/app/_components/Callout'
+import { Callout } from "@/app/_components/Callout";
 
 export default function ContactPage() {
   return (
@@ -9,5 +9,5 @@ export default function ContactPage() {
         <span data-testid="private-callout-content">Imported from _components</span>
       </Callout>
     </div>
-  )
+  );
 }

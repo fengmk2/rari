@@ -5,5 +5,5 @@ export default function NotFound() {
       <p>The page you're looking for doesn't exist.</p>
       <a href="/">Go Home</a>
     </div>
-  )
+  );
 }

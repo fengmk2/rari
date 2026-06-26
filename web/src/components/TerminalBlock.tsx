@@ -1,18 +1,18 @@
-'use client'
+"use client";
 
-import { highlightCommand } from '@/lib/highlight-command'
-import { useClipboard } from '@/lib/use-clipboard'
-import Check from './icons/Check'
-import Copy from './icons/Copy'
-import Terminal2 from './icons/Terminal2'
+import { highlightCommand } from "@/lib/highlight-command";
+import { useClipboard } from "@/lib/use-clipboard";
+import Check from "./icons/Check";
+import Copy from "./icons/Copy";
+import Terminal2 from "./icons/Terminal2";
 
 interface TerminalBlockProps {
-  command: string
-  showHeader?: boolean
+  command: string;
+  showHeader?: boolean;
 }
 
 export default function TerminalBlock({ command, showHeader = true }: TerminalBlockProps) {
-  const { copied, copyToClipboard } = useClipboard()
+  const { copied, copyToClipboard } = useClipboard();
 
   return (
     <div className="not-prose my-6 relative group overflow-hidden rounded-md border border-[#30363d] bg-[#0d1117] max-w-full">
@@ -33,13 +33,7 @@ export default function TerminalBlock({ command, showHeader = true }: TerminalBl
           type="button"
           aria-label="Copy code to clipboard"
         >
-          {copied
-            ? (
-                <Check className="w-4 h-4 text-green-600" />
-              )
-            : (
-                <Copy className="w-4 h-4" />
-              )}
+          {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
         </button>
 
         <pre className="font-mono text-sm px-4 py-3 pr-12 m-0 overflow-x-auto max-w-full">
@@ -50,5 +44,5 @@ export default function TerminalBlock({ command, showHeader = true }: TerminalBl
         </pre>
       </div>
     </div>
-  )
+  );
 }

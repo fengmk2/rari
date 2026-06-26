@@ -1,11 +1,11 @@
 declare global {
   interface RequestInit {
     rari?: {
-      revalidate?: number | false
-      tags?: string[]
-      timeout?: number
-    }
+      revalidate?: number | false;
+      tags?: string[];
+      timeout?: number;
+    };
   }
 }
 
-export const rariFetchCacheTypes = true
+export const rariFetchCacheTypes = true;

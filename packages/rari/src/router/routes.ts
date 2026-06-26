@@ -10,155 +10,161 @@ import type {
   RouteSegment,
   RouteSegmentType,
   TemplateEntry,
-} from './types'
-import { promises as fs } from 'node:fs'
-import path from 'node:path'
-import { BACKSLASH_REGEX, PATH_SEPARATOR_REGEX } from '../shared/regex-constants'
+} from "./types";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import { BACKSLASH_REGEX, PATH_SEPARATOR_REGEX } from "../shared/regex-constants";
 
 export interface AppRouteGeneratorOptions {
-  appDir: string
-  extensions?: string[]
-  verbose?: boolean
+  appDir: string;
+  extensions?: string[];
+  verbose?: boolean;
 }
 
 const SPECIAL_FILES = {
-  PAGE: 'page',
-  LAYOUT: 'layout',
-  LOADING: 'loading',
-  ERROR: 'error',
-  NOT_FOUND: 'not-found',
-  TEMPLATE: 'template',
-  DEFAULT: 'default',
-  ROUTE: 'route',
-  OG_IMAGE: 'opengraph-image',
-  TWITTER_IMAGE: 'twitter-image',
-  ICON: 'icon',
-  APPLE_ICON: 'apple-icon',
-} as const
+  PAGE: "page",
+  LAYOUT: "layout",
+  LOADING: "loading",
+  ERROR: "error",
+  NOT_FOUND: "not-found",
+  TEMPLATE: "template",
+  DEFAULT: "default",
+  ROUTE: "route",
+  OG_IMAGE: "opengraph-image",
+  TWITTER_IMAGE: "twitter-image",
+  ICON: "icon",
+  APPLE_ICON: "apple-icon",
+} as const;
 
 const SEGMENT_PATTERNS = {
   DYNAMIC: /^\[([^\]]+)\]$/,
   CATCH_ALL: /^\[\.\.\.([^\]]+)\]$/,
   OPTIONAL_CATCH_ALL: /^\[\[\.\.\.([^\]]+)\]\]$/,
-} as const
+} as const;
 
 const ROUTE_SEGMENT_MATCHERS = [
   {
     pattern: SEGMENT_PATTERNS.OPTIONAL_CATCH_ALL,
-    type: 'optional-catch-all' as const,
+    type: "optional-catch-all" as const,
     format: (param: string) => `[[...${param}]]`,
   },
   {
     pattern: SEGMENT_PATTERNS.CATCH_ALL,
-    type: 'catch-all' as const,
+    type: "catch-all" as const,
     format: (param: string) => `[...${param}]`,
   },
   {
     pattern: SEGMENT_PATTERNS.DYNAMIC,
-    type: 'dynamic' as const,
+    type: "dynamic" as const,
     format: (param: string) => `[${param}]`,
   },
-] as const
+] as const;
 
-const GROUP_SEGMENT = /^\([^/]+\)$/
+const GROUP_SEGMENT = /^\([^/]+\)$/;
 
 export function isGroupSegment(name: string) {
-  return GROUP_SEGMENT.test(name)
+  return GROUP_SEGMENT.test(name);
 }
 
 function isInGroup(filePath: string) {
   if (!filePath) {
-    return false
+    return false;
   }
 
-  return filePath
-    .replace(BACKSLASH_REGEX, '/')
-    .split('/')
-    .filter(Boolean)
-    .some(isGroupSegment)
+  return filePath.replace(BACKSLASH_REGEX, "/").split("/").filter(Boolean).some(isGroupSegment);
 }
 
 function matchRouteSegment(segment: string) {
   for (const matcher of ROUTE_SEGMENT_MATCHERS) {
-    const match = segment.match(matcher.pattern)
+    const match = segment.match(matcher.pattern);
     if (match) {
       return {
         type: matcher.type,
         param: match[1],
         format: matcher.format,
-      }
+      };
     }
   }
 }
 
 function formatRouteSegment(segment: string) {
-  const match = matchRouteSegment(segment)
+  const match = matchRouteSegment(segment);
 
-  return match ? match.format(match.param) : segment
+  return match ? match.format(match.param) : segment;
 }
 
 function parseRouteSegment(segment: string): RouteSegment {
-  const match = matchRouteSegment(segment)
+  const match = matchRouteSegment(segment);
   if (match) {
     return {
       type: match.type,
       value: segment,
       param: match.param,
-    }
+    };
   }
 
   return {
-    type: 'static' as RouteSegmentType,
+    type: "static" as RouteSegmentType,
     value: segment,
-  }
+  };
 }
 
-const SIZE_EXPORT_REGEX = /export\s+const\s+size\s*=\s*\{\s*width\s*:\s*(\d+)\s*,\s*height\s*:\s*(\d+)\s*[,}]/
-const CONTENT_TYPE_EXPORT_REGEX = /export\s+const\s+contentType\s*=\s*['"]([^'"]+)['"]/
+const SIZE_EXPORT_REGEX =
+  /export\s+const\s+size\s*=\s*\{\s*width\s*:\s*(\d+)\s*,\s*height\s*:\s*(\d+)\s*[,}]/;
+const CONTENT_TYPE_EXPORT_REGEX = /export\s+const\s+contentType\s*=\s*['"]([^'"]+)['"]/;
 
-const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] as const
+const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"] as const;
 
 class AppRouteGenerator {
-  private appDir: string
-  private extensions: string[]
-  private verbose: boolean
+  private appDir: string;
+  private extensions: string[];
+  private verbose: boolean;
 
   constructor(options: AppRouteGeneratorOptions) {
-    this.appDir = path.resolve(options.appDir)
-    this.extensions = options.extensions || ['.tsx', '.jsx', '.ts', '.js']
-    this.verbose = options.verbose || false
+    this.appDir = path.resolve(options.appDir);
+    this.extensions = options.extensions || [".tsx", ".jsx", ".ts", ".js"];
+    this.verbose = options.verbose || false;
   }
 
   async generateManifest(): Promise<AppRouteManifest> {
-    if (this.verbose)
-      console.warn(`[rari] Router: Scanning app directory: ${this.appDir}`)
+    if (this.verbose) console.warn(`[rari] Router: Scanning app directory: ${this.appDir}`);
 
-    const routes: AppRouteEntry[] = []
-    const layouts: LayoutEntry[] = []
-    const loading: LoadingEntry[] = []
-    const errors: ErrorEntry[] = []
-    const notFound: NotFoundEntry[] = []
-    const templates: TemplateEntry[] = []
-    const apiRoutes: ApiRouteEntry[] = []
-    const ogImages: OgImageEntry[] = []
+    const routes: AppRouteEntry[] = [];
+    const layouts: LayoutEntry[] = [];
+    const loading: LoadingEntry[] = [];
+    const errors: ErrorEntry[] = [];
+    const notFound: NotFoundEntry[] = [];
+    const templates: TemplateEntry[] = [];
+    const apiRoutes: ApiRouteEntry[] = [];
+    const ogImages: OgImageEntry[] = [];
 
-    await this.scanDirectory('', routes, layouts, loading, errors, notFound, templates, apiRoutes, ogImages)
+    await this.scanDirectory(
+      "",
+      routes,
+      layouts,
+      loading,
+      errors,
+      notFound,
+      templates,
+      apiRoutes,
+      ogImages,
+    );
 
     for (const entries of [layouts, loading, errors, notFound, templates, ogImages]) {
-      this.finalizeGroupEntries(routes, entries)
+      this.finalizeGroupEntries(routes, entries);
     }
 
-    this.assertNoDuplicateRoutes(routes)
-    this.assertNoDuplicateRoutes(apiRoutes)
+    this.assertNoDuplicateRoutes(routes);
+    this.assertNoDuplicateRoutes(apiRoutes);
 
     if (this.verbose) {
-      console.warn(`[rari] Router: Found ${routes.length} routes`)
-      console.warn(`[rari] Router: Found ${layouts.length} layouts`)
-      console.warn(`[rari] Router: Found ${loading.length} loading components`)
-      console.warn(`[rari] Router: Found ${errors.length} error boundaries`)
-      console.warn(`[rari] Router: Found ${templates.length} templates`)
-      console.warn(`[rari] Router: Found ${apiRoutes.length} API routes`)
-      console.warn(`[rari] Router: Found ${ogImages.length} OG images`)
+      console.warn(`[rari] Router: Found ${routes.length} routes`);
+      console.warn(`[rari] Router: Found ${layouts.length} layouts`);
+      console.warn(`[rari] Router: Found ${loading.length} loading components`);
+      console.warn(`[rari] Router: Found ${errors.length} error boundaries`);
+      console.warn(`[rari] Router: Found ${templates.length} templates`);
+      console.warn(`[rari] Router: Found ${apiRoutes.length} API routes`);
+      console.warn(`[rari] Router: Found ${ogImages.length} OG images`);
     }
 
     return {
@@ -171,53 +177,51 @@ class AppRouteGenerator {
       apiRoutes: this.sortApiRoutes(apiRoutes),
       ogImages,
       generated: new Date().toISOString(),
-    }
+    };
   }
 
-  private finalizeGroupEntries<T extends { path: string, filePath: string, additionalPaths?: string[] }>(
-    pages: AppRouteEntry[],
-    entries: T[],
-  ): void {
+  private finalizeGroupEntries<
+    T extends { path: string; filePath: string; additionalPaths?: string[] },
+  >(pages: AppRouteEntry[], entries: T[]): void {
     for (let i = entries.length - 1; i >= 0; i--) {
-      const entry = entries[i]
-      const fileDir = path.dirname(entry.filePath).replace(BACKSLASH_REGEX, '/')
+      const entry = entries[i];
+      const fileDir = path.dirname(entry.filePath).replace(BACKSLASH_REGEX, "/");
       if (!isInGroup(fileDir)) {
-        continue
+        continue;
       }
 
       const pagesInSubtree = pages
         .filter((p) => {
-          const pDir = path.dirname(p.filePath).replace(BACKSLASH_REGEX, '/')
+          const pDir = path.dirname(p.filePath).replace(BACKSLASH_REGEX, "/");
 
-          return pDir === fileDir || pDir.startsWith(`${fileDir}/`)
+          return pDir === fileDir || pDir.startsWith(`${fileDir}/`);
         })
-        .map(p => p.path)
+        .map((p) => p.path);
 
       if (pagesInSubtree.length === 0) {
-        entries.splice(i, 1)
-        continue
+        entries.splice(i, 1);
+        continue;
       }
 
-      const uniqueSorted = Array.from(new Set(pagesInSubtree)).sort()
-      entry.path = uniqueSorted[0]
+      const uniqueSorted = Array.from(new Set(pagesInSubtree)).sort();
+      entry.path = uniqueSorted[0];
 
       if (uniqueSorted.length > 1) {
-        entry.additionalPaths = uniqueSorted.slice(1)
+        entry.additionalPaths = uniqueSorted.slice(1);
       }
     }
   }
 
-  private assertNoDuplicateRoutes(routes: Array<{ path: string, filePath: string }>): void {
-    const seen = new Map<string, string>()
+  private assertNoDuplicateRoutes(routes: Array<{ path: string; filePath: string }>): void {
+    const seen = new Map<string, string>();
     for (const route of routes) {
-      const existing = seen.get(route.path)
+      const existing = seen.get(route.path);
       if (existing) {
         throw new Error(
           `[rari] Route conflict: path '${route.path}' is defined by both '${existing}' and '${route.filePath}'.`,
-        )
-      }
-      else {
-        seen.set(route.path, route.filePath)
+        );
+      } else {
+        seen.set(route.path, route.filePath);
       }
     }
   }
@@ -233,30 +237,26 @@ class AppRouteGenerator {
     apiRoutes: ApiRouteEntry[],
     ogImages: OgImageEntry[],
   ): Promise<void> {
-    const fullPath = path.join(this.appDir, relativePath)
+    const fullPath = path.join(this.appDir, relativePath);
 
-    let entries: string[]
+    let entries: string[];
     try {
-      entries = await fs.readdir(fullPath)
-    }
-    catch {
-      return
+      entries = await fs.readdir(fullPath);
+    } catch {
+      return;
     }
 
-    const files: string[] = []
-    const dirs: string[] = []
+    const files: string[] = [];
+    const dirs: string[] = [];
 
     for (const entry of entries) {
-      const entryPath = path.join(fullPath, entry)
-      const stat = await fs.stat(entryPath)
+      const entryPath = path.join(fullPath, entry);
+      const stat = await fs.stat(entryPath);
 
       if (stat.isDirectory()) {
-        if (this.shouldScanDirectory(entry))
-          dirs.push(entry)
-      }
-      /* v8 ignore next 3 - edge case: symlinks or special files */
-      else if (stat.isFile()) {
-        files.push(entry)
+        if (this.shouldScanDirectory(entry)) dirs.push(entry);
+      } /* v8 ignore next 3 - edge case: symlinks or special files */ else if (stat.isFile()) {
+        files.push(entry);
       }
     }
 
@@ -271,11 +271,21 @@ class AppRouteGenerator {
       templates,
       apiRoutes,
       ogImages,
-    )
+    );
 
     for (const dir of dirs) {
-      const subPath = relativePath ? path.join(relativePath, dir) : dir
-      await this.scanDirectory(subPath, routes, layouts, loading, errors, notFound, templates, apiRoutes, ogImages)
+      const subPath = relativePath ? path.join(relativePath, dir) : dir;
+      await this.scanDirectory(
+        subPath,
+        routes,
+        layouts,
+        loading,
+        errors,
+        notFound,
+        templates,
+        apiRoutes,
+        ogImages,
+      );
     }
   }
 
@@ -291,91 +301,89 @@ class AppRouteGenerator {
     apiRoutes: ApiRouteEntry[],
     ogImages: OgImageEntry[],
   ): Promise<void> {
-    const routePath = this.pathToRoute(relativePath)
+    const routePath = this.pathToRoute(relativePath);
 
-    const pageFile = this.findFile(files, SPECIAL_FILES.PAGE)
+    const pageFile = this.findFile(files, SPECIAL_FILES.PAGE);
     if (pageFile) {
-      const segments = this.parseRouteSegments(relativePath)
-      const params = this.extractParams(segments)
+      const segments = this.parseRouteSegments(relativePath);
+      const params = this.extractParams(segments);
 
       routes.push({
         path: routePath,
-        filePath: path.join(relativePath, pageFile).replace(BACKSLASH_REGEX, '/'),
+        filePath: path.join(relativePath, pageFile).replace(BACKSLASH_REGEX, "/"),
         segments,
         params,
         isDynamic: params.length > 0,
-      })
+      });
     }
 
-    const layoutFile = this.findFile(files, SPECIAL_FILES.LAYOUT)
+    const layoutFile = this.findFile(files, SPECIAL_FILES.LAYOUT);
     if (layoutFile) {
-      const parentPath = this.getParentPath(relativePath)
+      const parentPath = this.getParentPath(relativePath);
       layouts.push({
         path: routePath,
-        filePath: path.join(relativePath, layoutFile).replace(BACKSLASH_REGEX, '/'),
+        filePath: path.join(relativePath, layoutFile).replace(BACKSLASH_REGEX, "/"),
         parentPath: parentPath !== null ? this.pathToRoute(parentPath) : undefined,
-      })
+      });
     }
 
-    const loadingFile = this.findFile(files, SPECIAL_FILES.LOADING)
+    const loadingFile = this.findFile(files, SPECIAL_FILES.LOADING);
     if (loadingFile) {
-      const componentId = this.generateComponentId(routePath, 'loading')
+      const componentId = this.generateComponentId(routePath, "loading");
       loading.push({
         path: routePath,
-        filePath: path.join(relativePath, loadingFile).replace(BACKSLASH_REGEX, '/'),
+        filePath: path.join(relativePath, loadingFile).replace(BACKSLASH_REGEX, "/"),
         componentId,
-      })
+      });
     }
 
-    const errorFile = this.findFile(files, SPECIAL_FILES.ERROR)
+    const errorFile = this.findFile(files, SPECIAL_FILES.ERROR);
     if (errorFile) {
       errors.push({
         path: routePath,
-        filePath: path.join(relativePath, errorFile).replace(BACKSLASH_REGEX, '/'),
-      })
+        filePath: path.join(relativePath, errorFile).replace(BACKSLASH_REGEX, "/"),
+      });
     }
 
-    const notFoundFile = this.findFile(files, SPECIAL_FILES.NOT_FOUND)
+    const notFoundFile = this.findFile(files, SPECIAL_FILES.NOT_FOUND);
     if (notFoundFile) {
       notFound.push({
         path: routePath,
-        filePath: path.join(relativePath, notFoundFile).replace(BACKSLASH_REGEX, '/'),
-      })
+        filePath: path.join(relativePath, notFoundFile).replace(BACKSLASH_REGEX, "/"),
+      });
     }
 
-    const templateFile = this.findFile(files, SPECIAL_FILES.TEMPLATE)
+    const templateFile = this.findFile(files, SPECIAL_FILES.TEMPLATE);
     if (templateFile) {
-      const parentPath = this.getParentPath(relativePath)
+      const parentPath = this.getParentPath(relativePath);
       templates.push({
         path: routePath,
-        filePath: path.join(relativePath, templateFile).replace(BACKSLASH_REGEX, '/'),
+        filePath: path.join(relativePath, templateFile).replace(BACKSLASH_REGEX, "/"),
         parentPath: parentPath !== null ? this.pathToRoute(parentPath) : undefined,
-      })
+      });
     }
 
-    const ogImageFile = this.findFile(files, SPECIAL_FILES.OG_IMAGE)
+    const ogImageFile = this.findFile(files, SPECIAL_FILES.OG_IMAGE);
     if (ogImageFile) {
-      const filePath = path.join(relativePath, ogImageFile).replace(BACKSLASH_REGEX, '/')
-      const fullFilePath = path.join(this.appDir, filePath)
+      const filePath = path.join(relativePath, ogImageFile).replace(BACKSLASH_REGEX, "/");
+      const fullFilePath = path.join(this.appDir, filePath);
 
-      let width: number | undefined
-      let height: number | undefined
-      let contentType: string | undefined
+      let width: number | undefined;
+      let height: number | undefined;
+      let contentType: string | undefined;
 
       try {
-        const content = await fs.readFile(fullFilePath, 'utf-8')
+        const content = await fs.readFile(fullFilePath, "utf-8");
 
-        const sizeMatch = content.match(SIZE_EXPORT_REGEX)
+        const sizeMatch = content.match(SIZE_EXPORT_REGEX);
         if (sizeMatch) {
-          width = Number.parseInt(sizeMatch[1], 10)
-          height = Number.parseInt(sizeMatch[2], 10)
+          width = Number.parseInt(sizeMatch[1], 10);
+          height = Number.parseInt(sizeMatch[2], 10);
         }
 
-        const contentTypeMatch = content.match(CONTENT_TYPE_EXPORT_REGEX)
-        if (contentTypeMatch)
-          contentType = contentTypeMatch[1]
-      }
-      catch {}
+        const contentTypeMatch = content.match(CONTENT_TYPE_EXPORT_REGEX);
+        if (contentTypeMatch) contentType = contentTypeMatch[1];
+      } catch {}
 
       ogImages.push({
         path: routePath,
@@ -383,197 +391,175 @@ class AppRouteGenerator {
         width,
         height,
         contentType,
-      })
+      });
     }
 
-    const routeFile = this.findFile(files, SPECIAL_FILES.ROUTE)
+    const routeFile = this.findFile(files, SPECIAL_FILES.ROUTE);
     if (routeFile) {
-      const apiRoute = await this.processApiRouteFile(relativePath, routeFile)
-      apiRoutes.push(apiRoute)
+      const apiRoute = await this.processApiRouteFile(relativePath, routeFile);
+      apiRoutes.push(apiRoute);
     }
   }
 
   private findFile(files: string[], baseName: string): string | undefined {
     for (const ext of this.extensions) {
-      const fileName = `${baseName}${ext}`
-      if (files.includes(fileName))
-        return fileName
+      const fileName = `${baseName}${ext}`;
+      if (files.includes(fileName)) return fileName;
     }
 
-    return undefined
+    return undefined;
   }
 
   private pathToRoute(filePath: string): string {
-    if (!filePath)
-      return '/'
+    if (!filePath) return "/";
 
-    const normalized = filePath.replace(BACKSLASH_REGEX, '/')
+    const normalized = filePath.replace(BACKSLASH_REGEX, "/");
 
-    const segments = normalized.split('/').filter(Boolean)
+    const segments = normalized.split("/").filter(Boolean);
     const routeSegments = segments
-      .filter(segment => !isGroupSegment(segment))
-      .map(formatRouteSegment)
+      .filter((segment) => !isGroupSegment(segment))
+      .map(formatRouteSegment);
 
-    return `/${routeSegments.join('/')}`
+    return `/${routeSegments.join("/")}`;
   }
 
   private parseRouteSegments(filePath: string): RouteSegment[] {
-    if (!filePath)
-      return []
+    if (!filePath) return [];
 
-    const segments = filePath.split(PATH_SEPARATOR_REGEX).filter(Boolean)
-    return segments
-      .filter(segment => !isGroupSegment(segment))
-      .map(parseRouteSegment)
+    const segments = filePath.split(PATH_SEPARATOR_REGEX).filter(Boolean);
+    return segments.filter((segment) => !isGroupSegment(segment)).map(parseRouteSegment);
   }
 
   private extractParams(segments: RouteSegment[]): string[] {
-    return segments
-      .filter(seg => seg.param !== undefined)
-      .map(seg => seg.param!)
+    return segments.filter((seg) => seg.param !== undefined).map((seg) => seg.param!);
   }
 
   private getParentPath(filePath: string): string | null {
-    if (!filePath)
-      return null
+    if (!filePath) return null;
 
-    const parts = filePath.split(PATH_SEPARATOR_REGEX).filter(Boolean)
+    const parts = filePath.split(PATH_SEPARATOR_REGEX).filter(Boolean);
     /* v8 ignore start - edge case: path with only separators */
-    if (parts.length === 0)
-      return null
+    if (parts.length === 0) return null;
     /* v8 ignore stop */
 
-    return parts.slice(0, -1).join('/')
+    return parts.slice(0, -1).join("/");
   }
 
   private generateComponentId(routePath: string, type: string): string {
-    return `${type}:${routePath}`
+    return `${type}:${routePath}`;
   }
 
   private shouldScanDirectory(name: string): boolean {
     const skipDirs = [
-      'node_modules',
-      '.git',
-      'dist',
-      'build',
-      '__tests__',
-      'test',
-      'tests',
-      'coverage',
-    ]
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "__tests__",
+      "test",
+      "tests",
+      "coverage",
+    ];
 
-    return !skipDirs.includes(name) && !name.startsWith('_') && !name.startsWith('.')
+    return !skipDirs.includes(name) && !name.startsWith("_") && !name.startsWith(".");
   }
 
   private sortRoutes(routes: AppRouteEntry[]): AppRouteEntry[] {
     return routes.sort((a, b) => {
       const getSpecificity = (route: AppRouteEntry): number => {
-        if (!route.isDynamic)
-          return 0
+        if (!route.isDynamic) return 0;
 
-        const hasCatchAll = route.segments.some(s => s.type === 'catch-all')
-        const hasOptionalCatchAll = route.segments.some(s => s.type === 'optional-catch-all')
+        const hasCatchAll = route.segments.some((s) => s.type === "catch-all");
+        const hasOptionalCatchAll = route.segments.some((s) => s.type === "optional-catch-all");
 
-        if (hasOptionalCatchAll)
-          return 3
-        if (hasCatchAll)
-          return 2
+        if (hasOptionalCatchAll) return 3;
+        if (hasCatchAll) return 2;
 
-        return 1
-      }
+        return 1;
+      };
 
-      const aSpec = getSpecificity(a)
-      const bSpec = getSpecificity(b)
+      const aSpec = getSpecificity(a);
+      const bSpec = getSpecificity(b);
 
-      if (aSpec !== bSpec)
-        return aSpec - bSpec
+      if (aSpec !== bSpec) return aSpec - bSpec;
 
-      const aDepth = a.path.split('/').length
-      const bDepth = b.path.split('/').length
-      if (aDepth !== bDepth)
-        return bDepth - aDepth
+      const aDepth = a.path.split("/").length;
+      const bDepth = b.path.split("/").length;
+      if (aDepth !== bDepth) return bDepth - aDepth;
 
-      return a.path.localeCompare(b.path)
-    })
+      return a.path.localeCompare(b.path);
+    });
   }
 
   private sortApiRoutes(routes: ApiRouteEntry[]): ApiRouteEntry[] {
     return routes.sort((a, b) => {
-      if (!a.isDynamic && b.isDynamic)
-        return -1
-      if (a.isDynamic && !b.isDynamic)
-        return 1
+      if (!a.isDynamic && b.isDynamic) return -1;
+      if (a.isDynamic && !b.isDynamic) return 1;
 
-      const aDepth = a.path.split('/').length
-      const bDepth = b.path.split('/').length
+      const aDepth = a.path.split("/").length;
+      const bDepth = b.path.split("/").length;
       /* v8 ignore start - depth comparison edge case */
-      if (aDepth !== bDepth)
-        return aDepth - bDepth
+      if (aDepth !== bDepth) return aDepth - bDepth;
       /* v8 ignore stop */
 
-      return a.path.localeCompare(b.path)
-    })
+      return a.path.localeCompare(b.path);
+    });
   }
 
   private sortLayouts(layouts: LayoutEntry[]): LayoutEntry[] {
     return layouts.sort((a, b) => {
       /* v8 ignore start - root layout sorting comparisons */
-      if (a.path === '/' && b.path !== '/')
-        return -1
-      if (b.path === '/' && a.path !== '/')
-        return 1
+      if (a.path === "/" && b.path !== "/") return -1;
+      if (b.path === "/" && a.path !== "/") return 1;
       /* v8 ignore stop */
 
-      const aDepth = a.path.split('/').length
-      const bDepth = b.path.split('/').length
-      return aDepth - bDepth
-    })
+      const aDepth = a.path.split("/").length;
+      const bDepth = b.path.split("/").length;
+      return aDepth - bDepth;
+    });
   }
 
   private sortTemplates(templates: TemplateEntry[]): TemplateEntry[] {
     return templates.sort((a, b) => {
       /* v8 ignore start - root template sorting comparisons */
-      if (a.path === '/' && b.path !== '/')
-        return -1
-      if (b.path === '/' && a.path !== '/')
-        return 1
+      if (a.path === "/" && b.path !== "/") return -1;
+      if (b.path === "/" && a.path !== "/") return 1;
       /* v8 ignore stop */
 
-      const aDepth = a.path.split('/').length
-      const bDepth = b.path.split('/').length
-      return aDepth - bDepth
-    })
+      const aDepth = a.path.split("/").length;
+      const bDepth = b.path.split("/").length;
+      return aDepth - bDepth;
+    });
   }
 
   private async detectHttpMethods(filePath: string): Promise<string[]> {
-    const fullPath = path.join(this.appDir, filePath)
-    const content = await fs.readFile(fullPath, 'utf-8')
-    const methods: string[] = []
+    const fullPath = path.join(this.appDir, filePath);
+    const content = await fs.readFile(fullPath, "utf-8");
+    const methods: string[] = [];
 
     for (const method of HTTP_METHODS) {
       const functionExportRegex = new RegExp(
         `export\\s+(?:async\\s+)?function\\s+${method}\\s*\\(`,
-      )
+      );
       const constExportRegex = new RegExp(
         `export\\s+(?:async\\s+)?(?:const|let|var)\\s+${method}\\s*=`,
-      )
+      );
 
-      if (functionExportRegex.test(content) || constExportRegex.test(content))
-        methods.push(method)
+      if (functionExportRegex.test(content) || constExportRegex.test(content)) methods.push(method);
     }
 
-    return methods
+    return methods;
   }
 
   private async processApiRouteFile(
     relativePath: string,
     fileName: string,
   ): Promise<ApiRouteEntry> {
-    const filePath = path.join(relativePath, fileName).replace(BACKSLASH_REGEX, '/')
-    const routePath = this.pathToRoute(relativePath)
-    const segments = this.parseRouteSegments(relativePath)
-    const params = this.extractParams(segments)
-    const methods = await this.detectHttpMethods(filePath)
+    const filePath = path.join(relativePath, fileName).replace(BACKSLASH_REGEX, "/");
+    const routePath = this.pathToRoute(relativePath);
+    const segments = this.parseRouteSegments(relativePath);
+    const params = this.extractParams(segments);
+    const methods = await this.detectHttpMethods(filePath);
 
     return {
       path: routePath,
@@ -582,7 +568,7 @@ class AppRouteGenerator {
       params,
       isDynamic: params.length > 0,
       methods,
-    }
+    };
   }
 }
 
@@ -593,7 +579,7 @@ export async function generateAppRouteManifest(
   const generator = new AppRouteGenerator({
     appDir,
     ...options,
-  })
+  });
 
-  return generator.generateManifest()
+  return generator.generateManifest();
 }

@@ -1,3 +1,3 @@
 export default function ParallelPageLoading() {
-  return <div />
+  return <div />;
 }

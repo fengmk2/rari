@@ -1,12 +1,12 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
+import { useState } from "react";
 
 export default function NestedErrorChildClient() {
-  const [shouldThrow, setShouldThrow] = useState(false)
+  const [shouldThrow, setShouldThrow] = useState(false);
 
   if (shouldThrow) {
-    throw new Error('Error from nested child page')
+    throw new Error("Error from nested child page");
   }
 
   return (
@@ -20,5 +20,5 @@ export default function NestedErrorChildClient() {
         Trigger Nested Error
       </button>
     </div>
-  )
+  );
 }

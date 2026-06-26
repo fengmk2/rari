@@ -2,25 +2,25 @@
 /// <reference path="./types.d.ts" />
 
 interface MetadataParams {
-  params: Record<string, string>
-  searchParams: Record<string, string>
+  params: Record<string, string>;
+  searchParams: Record<string, string>;
 }
 
 interface PageMetadata {
-  title?: string
-  description?: string
-  [key: string]: unknown
+  title?: string;
+  description?: string;
+  [key: string]: unknown;
 }
 
-type GenerateMetadataFn = (props: MetadataParams) => Promise<PageMetadata> | PageMetadata
+type GenerateMetadataFn = (props: MetadataParams) => Promise<PageMetadata> | PageMetadata;
 
 interface ModuleWithMetadata {
-  metadata?: PageMetadata
-  generateMetadata?: GenerateMetadataFn
+  metadata?: PageMetadata;
+  generateMetadata?: GenerateMetadataFn;
 }
 
-const FILE_URL_REGEX = /^file:\/\/.*\/app\//
-const JS_EXTENSION_REGEX = /\.js$/
+const FILE_URL_REGEX = /^file:\/\/.*\/app\//;
+const JS_EXTENSION_REGEX = /\.js$/;
 
 async function collect(
   layoutPaths: string[],
@@ -28,7 +28,7 @@ async function collect(
   params: Record<string, string>,
   searchParams: Record<string, string>,
 ): Promise<PageMetadata[]> {
-  const metadataList: PageMetadata[] = []
+  const metadataList: PageMetadata[] = [];
 
   async function extractMetadata(
     modulePath: string,
@@ -37,63 +37,58 @@ async function collect(
   ): Promise<PageMetadata> {
     try {
       // @ts-expect-error - ~rsc is dynamically added to globalThis
-      if (globalThis['~rsc'] && globalThis['~rsc'].modules !== undefined) {
+      if (globalThis["~rsc"] && globalThis["~rsc"].modules !== undefined) {
         const moduleKey = modulePath
-          .replace(FILE_URL_REGEX, 'app/')
-          .replace(JS_EXTENSION_REGEX, '')
+          .replace(FILE_URL_REGEX, "app/")
+          .replace(JS_EXTENSION_REGEX, "");
 
         // @ts-expect-error - ~rsc is dynamically added to globalThis
-        const module = globalThis['~rsc'].modules[moduleKey] as ModuleWithMetadata | undefined
+        const module = globalThis["~rsc"].modules[moduleKey] as ModuleWithMetadata | undefined;
 
         if (module) {
-          if (typeof module.generateMetadata === 'function') {
-            const result = await module.generateMetadata({ params, searchParams })
-            if (result && typeof result === 'object')
-              return result
+          if (typeof module.generateMetadata === "function") {
+            const result = await module.generateMetadata({ params, searchParams });
+            if (result && typeof result === "object") return result;
           }
 
-          if (module.metadata && typeof module.metadata === 'object')
-            return module.metadata
+          if (module.metadata && typeof module.metadata === "object") return module.metadata;
         }
       }
 
-      const module = await import(modulePath) as ModuleWithMetadata
+      const module = (await import(modulePath)) as ModuleWithMetadata;
 
-      if (typeof module.generateMetadata === 'function') {
-        const result = await module.generateMetadata({ params, searchParams })
-        if (result && typeof result === 'object')
-          return result
+      if (typeof module.generateMetadata === "function") {
+        const result = await module.generateMetadata({ params, searchParams });
+        if (result && typeof result === "object") return result;
       }
 
-      if (module.metadata && typeof module.metadata === 'object')
-        return module.metadata
+      if (module.metadata && typeof module.metadata === "object") return module.metadata;
 
-      return {}
-    }
-    catch (error) {
-      console.error(`Failed to extract metadata from ${modulePath}:`, error)
-      return {}
+      return {};
+    } catch (error) {
+      console.error(`Failed to extract metadata from ${modulePath}:`, error);
+      return {};
     }
   }
 
-  const validLayoutPaths = Array.isArray(layoutPaths) ? layoutPaths : []
+  const validLayoutPaths = Array.isArray(layoutPaths) ? layoutPaths : [];
   for (const layoutPath of validLayoutPaths) {
-    const layoutMetadata = await extractMetadata(layoutPath, params, searchParams)
-    metadataList.push(layoutMetadata)
+    const layoutMetadata = await extractMetadata(layoutPath, params, searchParams);
+    metadataList.push(layoutMetadata);
   }
 
-  const pageMetadata = await extractMetadata(pagePath, params, searchParams)
-  metadataList.push(pageMetadata)
+  const pageMetadata = await extractMetadata(pagePath, params, searchParams);
+  metadataList.push(pageMetadata);
 
-  return metadataList
+  return metadataList;
 }
 
 // @ts-expect-error - ~rari is dynamically added to globalThis
-if (!globalThis['~rari'])
+if (!globalThis["~rari"])
   // @ts-expect-error - ~rari is dynamically added to globalThis
-  globalThis['~rari'] = {}
+  globalThis["~rari"] = {};
 
 // @ts-expect-error - ~rari is dynamically added to globalThis
-globalThis['~rari'].metadataCollector = {
+globalThis["~rari"].metadataCollector = {
   collect,
-}
+};

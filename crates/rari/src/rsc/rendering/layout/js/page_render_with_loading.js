@@ -1,88 +1,79 @@
 /* eslint-disable unused-imports/no-unused-vars, no-undef, style/object-curly-spacing */
 // oxlint-disable vars-on-top, no-var, block-scoped-var, no-redeclare
 // @ts-nocheck
-const startPage = performance.now()
-const PageComponent = globalThis['{page_component_id}']
-if (!PageComponent || typeof PageComponent !== 'function')
-  throw new Error('Page component {page_component_id} not found')
+const startPage = performance.now();
+const PageComponent = globalThis["{page_component_id}"];
+if (!PageComponent || typeof PageComponent !== "function")
+  throw new Error("Page component {page_component_id} not found");
 
-let pageElement
-const LoadingComponent = globalThis['{loading_id}']
-if (!LoadingComponent || typeof LoadingComponent !== 'function') {
-  const pageProps = {page_props_json}
-  pageElement = React.createElement(PageComponent, pageProps)
-  timings.isAsync = PageComponent.constructor.name === 'AsyncFunction'
-}
-else {
-  const pageProps = {page_props_json}
-  const useSuspense = {use_suspense}
+let pageElement;
+const LoadingComponent = globalThis["{loading_id}"];
+if (!LoadingComponent || typeof LoadingComponent !== "function") {
+  const pageProps = { page_props_json };
+  pageElement = React.createElement(PageComponent, pageProps);
+  timings.isAsync = PageComponent.constructor.name === "AsyncFunction";
+} else {
+  const pageProps = { page_props_json };
+  const useSuspense = { use_suspense };
 
-  const isAsync = PageComponent.constructor.name === 'AsyncFunction'
+  const isAsync = PageComponent.constructor.name === "AsyncFunction";
 
   if (isAsync && useSuspense) {
-    const streamingEnabled = globalThis['~rari']?.streaming?.enabled === true
+    const streamingEnabled = globalThis["~rari"]?.streaming?.enabled === true;
 
     if (streamingEnabled) {
-      if (!globalThis['~rari'].lazy)
-        globalThis['~rari'].lazy = { pending: new Map(), resolved: new Map(), counter: 0 }
+      if (!globalThis["~rari"].lazy)
+        globalThis["~rari"].lazy = { pending: new Map(), resolved: new Map(), counter: 0 };
 
-      globalThis['~rari'].lazy.counter++
+      globalThis["~rari"].lazy.counter++;
 
-      const promiseId = `{page_component_id}_promise_${globalThis['~rari'].lazy.counter}`
+      const promiseId = `{page_component_id}_promise_${globalThis["~rari"].lazy.counter}`;
 
-      globalThis['~rari'].lazy.pending.set(promiseId, {
+      globalThis["~rari"].lazy.pending.set(promiseId, {
         component: PageComponent,
         props: pageProps,
         isDeferred: true,
-      })
+      });
 
-      if (!globalThis['~suspense'])
-        globalThis['~suspense'] = {}
-      if (!globalThis['~suspense'].pendingPromises)
-        globalThis['~suspense'].pendingPromises = []
-      if (!globalThis['~suspense'].pendingPromisesById)
-        globalThis['~suspense'].pendingPromisesById = {}
+      if (!globalThis["~suspense"]) globalThis["~suspense"] = {};
+      if (!globalThis["~suspense"].pendingPromises) globalThis["~suspense"].pendingPromises = [];
+      if (!globalThis["~suspense"].pendingPromisesById)
+        globalThis["~suspense"].pendingPromisesById = {};
 
       const pendingPromiseInfo = {
         id: promiseId,
         boundaryId: promiseId,
-        componentPath: '{route_file_path}#default',
+        componentPath: "{route_file_path}#default",
         componentType: PageComponent,
         componentProps: pageProps,
-      }
-      globalThis['~suspense'].pendingPromises.push(pendingPromiseInfo)
-      globalThis['~suspense'].pendingPromisesById[promiseId] = pendingPromiseInfo
+      };
+      globalThis["~suspense"].pendingPromises.push(pendingPromiseInfo);
+      globalThis["~suspense"].pendingPromisesById[promiseId] = pendingPromiseInfo;
 
       const lazyMarker = {
-        '~rari_lazy': true,
-        '~rari_promise_id': promiseId,
-        '~rari_component_id': '{route_file_path}#default',
-        '~rari_loading_id': '{loading_file_path}#default',
-      }
+        "~rari_lazy": true,
+        "~rari_promise_id": promiseId,
+        "~rari_component_id": "{route_file_path}#default",
+        "~rari_loading_id": "{loading_file_path}#default",
+      };
 
-      const loadingFallback = React.createElement(LoadingComponent)
+      const loadingFallback = React.createElement(LoadingComponent);
 
       pageElement = React.createElement(
         React.Suspense,
-        { 'fallback': loadingFallback, '~boundaryId': promiseId },
+        { fallback: loadingFallback, "~boundaryId": promiseId },
         lazyMarker,
-      )
-    }
-    else {
-      const pageResult = (async () => await PageComponent(pageProps))()
+      );
+    } else {
+      const pageResult = (async () => await PageComponent(pageProps))();
 
-      const loadingFallback = React.createElement(LoadingComponent)
-      pageElement = React.createElement(
-        React.Suspense,
-        { fallback: loadingFallback },
-        pageResult,
-      )
+      const loadingFallback = React.createElement(LoadingComponent);
+      pageElement = React.createElement(React.Suspense, { fallback: loadingFallback }, pageResult);
     }
-  }
-  else {
-    pageElement = React.createElement(PageComponent, pageProps)
+  } else {
+    pageElement = React.createElement(PageComponent, pageProps);
   }
 
-  timings.isAsync = isAsync
+  timings.isAsync = isAsync;
 }
-timings.pageRender = performance.now() - startPage
+timings.pageRender = performance.now() - startPage;

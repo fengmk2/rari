@@ -1,5 +1,5 @@
-import ErrorTestClient from './ErrorTestClient'
+import ErrorTestClient from "./ErrorTestClient";
 
 export default function ErrorTestPage() {
-  return <ErrorTestClient />
+  return <ErrorTestClient />;
 }

@@ -5,5 +5,5 @@ export default function NestedErrorPage() {
       <p>This page tests error propagation through nested routes.</p>
       <a href="/nested-error/child">Go to Child Page</a>
     </div>
-  )
+  );
 }

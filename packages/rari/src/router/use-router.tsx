@@ -1,150 +1,148 @@
-/* eslint-disable react-refresh/only-export-components */
-'use client'
+/* oxlint-disable react-refresh/only-export-components */
+"use client";
 
-import type { NavigationOptions } from './navigation-types'
-import { createContext, use, useEffect, useMemo, useRef, useState } from 'react'
-import { getNavigate } from './navigate'
+import type { NavigationOptions } from "./navigation-types";
+import { createContext, use, useEffect, useMemo, useRef, useState } from "react";
+import { getNavigate } from "./navigate";
 
 export interface RouterContextValue {
-  pathname: string
-  params: Record<string, string | string[]>
-  searchParams: URLSearchParams
-  push: (href: string, options?: NavigationOptions) => Promise<void>
-  replace: (href: string, options?: NavigationOptions) => Promise<void>
-  back: () => void
-  forward: () => void
-  refresh: () => void
-  prefetch: (href: string) => Promise<void>
+  pathname: string;
+  params: Record<string, string | string[]>;
+  searchParams: URLSearchParams;
+  push: (href: string, options?: NavigationOptions) => Promise<void>;
+  replace: (href: string, options?: NavigationOptions) => Promise<void>;
+  back: () => void;
+  forward: () => void;
+  refresh: () => void;
+  prefetch: (href: string) => Promise<void>;
 }
 
-const RouterContext = createContext<RouterContextValue | null>(null)
+const RouterContext = createContext<RouterContextValue | null>(null);
 
 export interface RouterProviderProps {
-  children: React.ReactNode
-  initialPathname: string
+  children: React.ReactNode;
+  initialPathname: string;
 }
 
 export function RouterProvider({ children, initialPathname }: RouterProviderProps) {
-  const [pathname, setPathname] = useState(initialPathname)
+  const [pathname, setPathname] = useState(initialPathname);
   const [searchParams, setSearchParams] = useState(() =>
-    typeof window !== 'undefined'
+    typeof window !== "undefined"
       ? new URLSearchParams(window.location.search)
       : new URLSearchParams(),
-  )
-  const navigateRef = useRef<((href: string, options?: NavigationOptions) => Promise<void>) | null>(null)
+  );
+  const navigateRef = useRef<((href: string, options?: NavigationOptions) => Promise<void>) | null>(
+    null,
+  );
 
   useEffect(() => {
     const handleNavigate = (event: Event) => {
-      const customEvent = event as CustomEvent
-      const detail = customEvent.detail
+      const customEvent = event as CustomEvent;
+      const detail = customEvent.detail;
 
       if (detail?.to) {
-        setPathname(detail.to)
-        setSearchParams(new URLSearchParams(window.location.search))
+        setPathname(detail.to);
+        setSearchParams(new URLSearchParams(window.location.search));
       }
-    }
-    window.addEventListener('rari:navigate', handleNavigate)
+    };
+    window.addEventListener("rari:navigate", handleNavigate);
 
     return () => {
-      window.removeEventListener('rari:navigate', handleNavigate)
-    }
-  }, [])
+      window.removeEventListener("rari:navigate", handleNavigate);
+    };
+  }, []);
 
   useEffect(() => {
-    const existingNavigate = getNavigate()
-    if (existingNavigate)
-      navigateRef.current = existingNavigate
+    const existingNavigate = getNavigate();
+    if (existingNavigate) navigateRef.current = existingNavigate;
 
     const handleRegisterNavigate = (event: Event) => {
-      const customEvent = event as CustomEvent<{ navigate: (href: string, options?: NavigationOptions) => Promise<void> }>
-      navigateRef.current = customEvent.detail.navigate
-    }
+      const customEvent = event as CustomEvent<{
+        navigate: (href: string, options?: NavigationOptions) => Promise<void>;
+      }>;
+      navigateRef.current = customEvent.detail.navigate;
+    };
 
     const handleDeregisterNavigate = () => {
-      navigateRef.current = null
-    }
+      navigateRef.current = null;
+    };
 
-    window.addEventListener('rari:register-navigate', handleRegisterNavigate)
-    window.addEventListener('rari:deregister-navigate', handleDeregisterNavigate)
+    window.addEventListener("rari:register-navigate", handleRegisterNavigate);
+    window.addEventListener("rari:deregister-navigate", handleDeregisterNavigate);
 
     return () => {
-      window.removeEventListener('rari:register-navigate', handleRegisterNavigate)
-      window.removeEventListener('rari:deregister-navigate', handleDeregisterNavigate)
-    }
-  }, [])
+      window.removeEventListener("rari:register-navigate", handleRegisterNavigate);
+      window.removeEventListener("rari:deregister-navigate", handleDeregisterNavigate);
+    };
+  }, []);
 
-  const value = useMemo<RouterContextValue>(() => ({
-    pathname,
-    params: {},
-    searchParams,
-    push: async (href: string, options?: NavigationOptions) => {
-      if (navigateRef.current) {
-        await navigateRef.current(href, options)
-      }
-      else {
-        console.warn('[rari] Router not ready, falling back to window.location')
-        window.location.href = href
-      }
-    },
-    replace: async (href: string, options?: NavigationOptions) => {
-      if (navigateRef.current) {
-        await navigateRef.current(href, { ...options, replace: true })
-      }
-      else {
-        console.warn('[rari] Router not ready, falling back to window.location')
-        window.location.replace(href)
-      }
-    },
-    back: () => {
-      window.history.back()
-    },
-    forward: () => {
-      window.history.forward()
-    },
-    refresh: () => {
-      window.dispatchEvent(new CustomEvent('rari:app-router-rerender'))
-    },
-    prefetch: async (href: string) => {
-      try {
-        const url = new URL(href, window.location.origin)
-        await fetch(url.pathname + url.search, {
-          headers: { Accept: 'text/x-component' },
-          priority: 'low',
-        } as RequestInit)
-      }
-      catch (error) {
-        console.warn('[rari] Prefetch failed:', error)
-      }
-    },
-  }), [pathname, searchParams])
+  const value = useMemo<RouterContextValue>(
+    () => ({
+      pathname,
+      params: {},
+      searchParams,
+      push: async (href: string, options?: NavigationOptions) => {
+        if (navigateRef.current) {
+          await navigateRef.current(href, options);
+        } else {
+          console.warn("[rari] Router not ready, falling back to window.location");
+          window.location.href = href;
+        }
+      },
+      replace: async (href: string, options?: NavigationOptions) => {
+        if (navigateRef.current) {
+          await navigateRef.current(href, { ...options, replace: true });
+        } else {
+          console.warn("[rari] Router not ready, falling back to window.location");
+          window.location.replace(href);
+        }
+      },
+      back: () => {
+        window.history.back();
+      },
+      forward: () => {
+        window.history.forward();
+      },
+      refresh: () => {
+        window.dispatchEvent(new CustomEvent("rari:app-router-rerender"));
+      },
+      prefetch: async (href: string) => {
+        try {
+          const url = new URL(href, window.location.origin);
+          await fetch(url.pathname + url.search, {
+            headers: { Accept: "text/x-component" },
+            priority: "low",
+          } as RequestInit);
+        } catch (error) {
+          console.warn("[rari] Prefetch failed:", error);
+        }
+      },
+    }),
+    [pathname, searchParams],
+  );
 
-  return (
-    <RouterContext value={value}>
-      {children}
-    </RouterContext>
-  )
+  return <RouterContext value={value}>{children}</RouterContext>;
 }
 
 export function useRouter(): RouterContextValue {
-  const context = use(RouterContext)
+  const context = use(RouterContext);
 
-  if (!context)
-    throw new Error('useRouter must be used within a RouterProvider')
+  if (!context) throw new Error("useRouter must be used within a RouterProvider");
 
-  return context
+  return context;
 }
 
 export function usePathname(): string {
-  const router = useRouter()
-  return router.pathname
+  const router = useRouter();
+  return router.pathname;
 }
 
 export function useParams(): Record<string, string | string[]> {
-  const router = useRouter()
-  return router.params
+  const router = useRouter();
+  return router.params;
 }
 
 export function useSearchParams(): URLSearchParams {
-  const router = useRouter()
-  return router.searchParams
+  const router = useRouter();
+  return router.searchParams;
 }

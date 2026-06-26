@@ -16,8 +16,11 @@ export default function ActionsLoading() {
         </div>
 
         <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200"
+            >
               <div className="w-5 h-5 bg-gray-200 rounded animate-pulse" />
               <div className="flex-1 h-4 bg-gray-200 rounded animate-pulse" />
               <div className="w-16 h-8 bg-gray-200 rounded animate-pulse" />
@@ -33,5 +36,5 @@ export default function ActionsLoading() {
         </div>
       </div>
     </div>
-  )
+  );
 }

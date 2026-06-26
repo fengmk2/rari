@@ -1,4 +1,4 @@
-import type { Metadata } from 'rari'
+import type { Metadata } from "rari";
 
 export default async function NestedPage() {
   return (
@@ -7,10 +7,10 @@ export default async function NestedPage() {
       <p>Testing nested routes.</p>
       <a href="/nested/deep">Go deeper</a>
     </div>
-  )
+  );
 }
 
 export const metadata: Metadata = {
-  title: 'Nested',
-  description: 'Nested page',
-}
+  title: "Nested",
+  description: "Nested page",
+};

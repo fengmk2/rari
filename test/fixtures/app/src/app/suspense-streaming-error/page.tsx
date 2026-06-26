@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
-import { Suspense } from 'react'
-import { sleep } from '../../utils/test-helpers'
+import type { ReactNode } from "react";
+import { Suspense } from "react";
+import { sleep } from "../../utils/test-helpers";
 
 export default function ErrorSuspensePage() {
   return (
@@ -10,10 +10,10 @@ export default function ErrorSuspensePage() {
         <ThrowingComponent delay={800} />
       </Suspense>
     </div>
-  )
+  );
 }
 
 async function ThrowingComponent({ delay }: { delay: number }): Promise<ReactNode> {
-  await sleep(delay)
-  throw new Error('Simulated component error')
+  await sleep(delay);
+  throw new Error("Simulated component error");
 }

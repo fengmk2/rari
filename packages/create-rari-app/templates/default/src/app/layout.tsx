@@ -1,5 +1,5 @@
 /* eslint-disable style/object-curly-spacing */
-import type { LayoutProps, Metadata } from 'rari'
+import type { LayoutProps, Metadata } from "rari";
 
 export default function RootLayout({ children }: LayoutProps) {
   return (
@@ -8,7 +8,7 @@ export default function RootLayout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-gray-900">{{PROJECT_NAME}}</span>
+              <span className="text-2xl font-bold text-gray-900">{{ PROJECT_NAME }}</span>
             </div>
             <ul className="flex gap-1 list-none m-0">
               <li>
@@ -33,10 +33,10 @@ export default function RootLayout({ children }: LayoutProps) {
       </nav>
       <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
     </div>
-  )
+  );
 }
 
 export const metadata: Metadata = {
-  title: '{{PROJECT_NAME}}',
-  description: 'A rari application',
-}
+  title: "{{PROJECT_NAME}}",
+  description: "A rari application",
+};

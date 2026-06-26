@@ -1,5 +1,5 @@
-import NestedErrorChildClient from './NestedErrorChildClient'
+import NestedErrorChildClient from "./NestedErrorChildClient";
 
 export default function NestedErrorChildPage() {
-  return <NestedErrorChildClient />
+  return <NestedErrorChildClient />;
 }

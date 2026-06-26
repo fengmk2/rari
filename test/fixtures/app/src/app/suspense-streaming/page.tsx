@@ -1,9 +1,9 @@
-import type { PageProps } from 'rari'
-import { Suspense } from 'react'
+import type { PageProps } from "rari";
+import { Suspense } from "react";
 
 interface SlowProps {
-  name: string
-  delay: number
+  name: string;
+  delay: number;
 }
 
 export default function SuspenseStreamingPage(_params: PageProps) {
@@ -20,18 +20,16 @@ export default function SuspenseStreamingPage(_params: PageProps) {
         <SlowComponent name="C" delay={3000} />
       </Suspense>
     </div>
-  )
+  );
 }
 
 async function SlowComponent({ name, delay }: SlowProps) {
-  await new Promise(resolve => setTimeout(resolve, delay))
+  await new Promise((resolve) => setTimeout(resolve, delay));
   // eslint-disable-next-line react/purity
-  const timestamp = new Date().toISOString()
+  const timestamp = new Date().toISOString();
   return (
     <div data-testid={`component-${name.toLowerCase()}`}>
-      {name}
-      :
-      {timestamp}
+      {name}:{timestamp}
     </div>
-  )
+  );
 }

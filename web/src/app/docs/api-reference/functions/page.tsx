@@ -1,15 +1,18 @@
-import type { Metadata } from 'rari'
-import Breadcrumbs from '@/components/Breadcrumbs'
-import ArrowNarrowRight from '@/components/icons/ArrowNarrowRight'
-import PageHeader from '@/components/PageHeader'
-import { container } from '@/lib/styles'
+import type { Metadata } from "rari";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import ArrowNarrowRight from "@/components/icons/ArrowNarrowRight";
+import PageHeader from "@/components/PageHeader";
+import { container } from "@/lib/styles";
 
 export default function FunctionsPage() {
   return (
     <div className={container.base}>
       <div className="prose prose-invert max-w-none">
         <Breadcrumbs pathname="/docs/api-reference/functions" />
-        <PageHeader title="Functions" pagePath="web/src/app/docs/api-reference/functions/page.tsx" />
+        <PageHeader
+          title="Functions"
+          pagePath="web/src/app/docs/api-reference/functions/page.tsx"
+        />
         <p className="text-lg text-gray-300 leading-relaxed">
           Server and client utilities for data fetching, caching, and more.
         </p>
@@ -32,7 +35,8 @@ export default function FunctionsPage() {
                         </span>
                       </h2>
                       <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors duration-300">
-                        Enhanced fetch with automatic request deduplication and caching powered by Rust.
+                        Enhanced fetch with automatic request deduplication and caching powered by
+                        Rust.
                       </p>
                     </div>
                   </div>
@@ -41,12 +45,12 @@ export default function FunctionsPage() {
               <div
                 className="absolute z-0 aspect-2/1 w-16 animate-border-trail opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 style={{
-                  background: 'radial-gradient(ellipse at 100% 50%, #fd7e14 0%, #ff9a3c 40%, transparent 70%)',
-                  offsetAnchor: '100% 50%',
-                  offsetPath: 'border-box',
+                  background:
+                    "radial-gradient(ellipse at 100% 50%, #fd7e14 0%, #ff9a3c 40%, transparent 70%)",
+                  offsetAnchor: "100% 50%",
+                  offsetPath: "border-box",
                 }}
-              >
-              </div>
+              ></div>
             </a>
 
             <div className="mt-8 p-6 bg-[#0d1117] border border-[#30363d] rounded-lg">
@@ -68,10 +72,10 @@ export default function FunctionsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export const metadata: Metadata = {
-  title: 'Functions / API Reference / rari Docs',
-  description: 'Server and client utilities for data fetching, caching, and more.',
-}
+  title: "Functions / API Reference / rari Docs",
+  description: "Server and client utilities for data fetching, caching, and more.",
+};

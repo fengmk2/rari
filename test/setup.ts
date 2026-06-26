@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, vi } from 'vite-plus/test'
+import { afterEach, beforeEach, vi } from "vite-plus/test";
 
 beforeEach(() => {
-  vi.clearAllMocks()
-})
+  vi.clearAllMocks();
+});
 
 afterEach(() => {
-  vi.restoreAllMocks()
-})
+  vi.restoreAllMocks();
+});

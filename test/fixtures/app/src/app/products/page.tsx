@@ -1,4 +1,4 @@
-import type { Metadata } from 'rari'
+import type { Metadata } from "rari";
 
 export default async function ProductsPage() {
   return (
@@ -14,10 +14,10 @@ export default async function ProductsPage() {
         </a>
       </nav>
     </div>
-  )
+  );
 }
 
 export const metadata: Metadata = {
-  title: 'Products',
-  description: 'All products',
-}
+  title: "Products",
+  description: "All products",
+};

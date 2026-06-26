@@ -1,10 +1,10 @@
-import fsSync from 'node:fs'
-import path from 'node:path'
-import { hasComponentExport, ServerComponentBuilder } from '@rari/vite/server-build'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import fsSync from "node:fs";
+import path from "node:path";
+import { hasComponentExport, ServerComponentBuilder } from "@rari/vite/server-build";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-vi.mock('node:fs')
-vi.mock('rolldown')
+vi.mock("node:fs");
+vi.mock("rolldown");
 
 function mockRoutesManifest() {
   return JSON.stringify({
@@ -15,56 +15,56 @@ function mockRoutesManifest() {
     notFound: [],
     apiRoutes: [],
     generated: new Date().toISOString(),
-  })
+  });
 }
 
-describe('ServerComponentBuilder', () => {
-  let builder: ServerComponentBuilder
-  const mockProjectRoot = '/test/project'
+describe("ServerComponentBuilder", () => {
+  let builder: ServerComponentBuilder;
+  const mockProjectRoot = "/test/project";
   const mockOptions = {
-    outDir: 'dist',
-    rscDir: 'server',
-    manifestPath: 'server/manifest.json',
-    serverConfigPath: 'server/config.json',
+    outDir: "dist",
+    rscDir: "server",
+    manifestPath: "server/manifest.json",
+    serverConfigPath: "server/config.json",
     minify: false,
     alias: {},
-  }
+  };
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.clearAllMocks();
 
-    vi.mocked(fsSync.existsSync).mockReturnValue(false)
+    vi.mocked(fsSync.existsSync).mockReturnValue(false);
 
-    vi.mocked(fsSync.readFileSync).mockReturnValue('')
+    vi.mocked(fsSync.readFileSync).mockReturnValue("");
 
-    vi.mocked(fsSync.readdirSync).mockReturnValue([])
+    vi.mocked(fsSync.readdirSync).mockReturnValue([]);
 
     vi.mocked(fsSync.statSync).mockReturnValue({
       isFile: () => true,
       isDirectory: () => false,
-    } as any)
+    } as any);
 
     const manifestJson = JSON.stringify({
       components: {},
       actions: {},
       importMap: { imports: {} },
       buildTime: new Date().toISOString(),
-    })
+    });
 
-    Object.defineProperty(fsSync, 'promises', {
+    Object.defineProperty(fsSync, "promises", {
       value: {
         mkdir: vi.fn().mockResolvedValue(undefined),
         writeFile: vi.fn().mockResolvedValue(undefined),
         readFile: vi.fn().mockImplementation(async (path: any) => {
-          if (typeof path === 'string' && path.includes('manifest.json')) {
-            return manifestJson
+          if (typeof path === "string" && path.includes("manifest.json")) {
+            return manifestJson;
           }
 
-          if (typeof path === 'string' && path.includes('routes.json')) {
-            return mockRoutesManifest()
+          if (typeof path === "string" && path.includes("routes.json")) {
+            return mockRoutesManifest();
           }
 
-          return 'export default function Component() { return null }'
+          return "export default function Component() { return null }";
         }),
         stat: vi.fn().mockResolvedValue({
           mtimeMs: Date.now(),
@@ -77,24 +77,24 @@ describe('ServerComponentBuilder', () => {
       },
       writable: true,
       configurable: true,
-    })
+    });
 
-    builder = new ServerComponentBuilder(mockProjectRoot, mockOptions)
-  })
+    builder = new ServerComponentBuilder(mockProjectRoot, mockOptions);
+  });
 
   afterEach(() => {
-    vi.restoreAllMocks()
-  })
+    vi.restoreAllMocks();
+  });
 
-  describe('constructor', () => {
-    it('should initialize with default options', () => {
-      const defaultBuilder = new ServerComponentBuilder(mockProjectRoot)
+  describe("constructor", () => {
+    it("should initialize with default options", () => {
+      const defaultBuilder = new ServerComponentBuilder(mockProjectRoot);
 
-      expect(defaultBuilder).toBeDefined()
-      expect(defaultBuilder.getComponentCount()).toBe(0)
-    })
+      expect(defaultBuilder).toBeDefined();
+      expect(defaultBuilder.getComponentCount()).toBe(0);
+    });
 
-    it('should parse HTML imports on initialization', () => {
+    it("should parse HTML imports on initialization", () => {
       const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -104,714 +104,710 @@ describe('ServerComponentBuilder', () => {
     </script>
   </head>
 </html>
-`
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(htmlContent)
+`;
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(htmlContent);
 
-      const builderWithHtml = new ServerComponentBuilder(mockProjectRoot, mockOptions)
+      const builderWithHtml = new ServerComponentBuilder(mockProjectRoot, mockOptions);
 
-      const htmlImports = builderWithHtml.getHtmlOnlyImports()
-      const expectedPath = path.join(mockProjectRoot, 'src', 'main.tsx')
+      const htmlImports = builderWithHtml.getHtmlOnlyImports();
+      const expectedPath = path.join(mockProjectRoot, "src", "main.tsx");
 
-      expect(htmlImports.has(expectedPath)).toBe(true)
-      expect(htmlImports.size).toBe(1)
-    })
+      expect(htmlImports.has(expectedPath)).toBe(true);
+      expect(htmlImports.size).toBe(1);
+    });
 
-    it('should handle missing index.html gracefully', () => {
-      vi.mocked(fsSync.existsSync).mockReturnValue(false)
+    it("should handle missing index.html gracefully", () => {
+      vi.mocked(fsSync.existsSync).mockReturnValue(false);
 
-      expect(() => new ServerComponentBuilder(mockProjectRoot, mockOptions)).not.toThrow()
-    })
-  })
+      expect(() => new ServerComponentBuilder(mockProjectRoot, mockOptions)).not.toThrow();
+    });
+  });
 
-  describe('isServerComponent', () => {
-    it('should return false for node_modules files', () => {
-      const filePath = '/test/project/node_modules/package/Component.tsx'
+  describe("isServerComponent", () => {
+    it("should return false for node_modules files", () => {
+      const filePath = "/test/project/node_modules/package/Component.tsx";
 
-      const result = builder.isServerComponent(filePath)
+      const result = builder.isServerComponent(filePath);
 
-      expect(result).toBe(false)
-    })
+      expect(result).toBe(false);
+    });
 
-    it('should return false for files with use client directive', () => {
-      const filePath = '/test/project/src/components/Client.tsx'
+    it("should return false for files with use client directive", () => {
+      const filePath = "/test/project/src/components/Client.tsx";
       const code = `'use client'
 
 export default function ClientComponent() {
   return <div>Client</div>
-}`
+}`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
-      const result = builder.isServerComponent(filePath)
+      const result = builder.isServerComponent(filePath);
 
-      expect(result).toBe(false)
-    })
+      expect(result).toBe(false);
+    });
 
-    it('should return false for files with use server directive', () => {
-      const filePath = '/test/project/src/actions/serverAction.ts'
+    it("should return false for files with use server directive", () => {
+      const filePath = "/test/project/src/actions/serverAction.ts";
       const code = `'use server'
 
 export async function myAction() {
   return { success: true }
-}`
+}`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
-      const result = builder.isServerComponent(filePath)
+      const result = builder.isServerComponent(filePath);
 
-      expect(result).toBe(false)
-    })
+      expect(result).toBe(false);
+    });
 
-    it('should return true for regular components', () => {
-      const filePath = '/test/project/src/components/Server.tsx'
+    it("should return true for regular components", () => {
+      const filePath = "/test/project/src/components/Server.tsx";
       const code = `export default function ServerComponent() {
   return <div>Server</div>
-}`
+}`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
-      const result = builder.isServerComponent(filePath)
+      const result = builder.isServerComponent(filePath);
 
-      expect(result).toBe(true)
-    })
+      expect(result).toBe(true);
+    });
 
-    it('should handle file read errors', () => {
-      const filePath = '/test/project/src/components/Error.tsx'
+    it("should handle file read errors", () => {
+      const filePath = "/test/project/src/components/Error.tsx";
 
       vi.mocked(fsSync.readFileSync).mockImplementation(() => {
-        throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
-      })
+        throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+      });
 
-      const result = builder.isServerComponent(filePath)
+      const result = builder.isServerComponent(filePath);
 
-      expect(result).toBe(false)
-    })
+      expect(result).toBe(false);
+    });
 
-    it('should ignore comments with use client', () => {
-      const filePath = '/test/project/src/components/Commented.tsx'
+    it("should ignore comments with use client", () => {
+      const filePath = "/test/project/src/components/Commented.tsx";
       const code = `// 'use client'
 
 export default function Component() {
   return <div>Test</div>
-}`
+}`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
-      const result = builder.isServerComponent(filePath)
+      const result = builder.isServerComponent(filePath);
 
-      expect(result).toBe(true)
-    })
-  })
+      expect(result).toBe(true);
+    });
+  });
 
-  describe('addServerComponent', () => {
-    it('should add server component to collection', () => {
-      const filePath = '/test/project/src/components/Test.tsx'
+  describe("addServerComponent", () => {
+    it("should add server component to collection", () => {
+      const filePath = "/test/project/src/components/Test.tsx";
       const code = `export default function Test() {
   return <div>Test</div>
-}`
+}`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
-      builder.addServerComponent(filePath)
+      builder.addServerComponent(filePath);
 
-      expect(builder.getComponentCount()).toBe(1)
-    })
+      expect(builder.getComponentCount()).toBe(1);
+    });
 
-    it('should detect and add server actions separately', () => {
-      const filePath = '/test/project/src/actions/test.ts'
+    it("should detect and add server actions separately", () => {
+      const filePath = "/test/project/src/actions/test.ts";
       const code = `'use server'
 
 export async function testAction() {
   return { success: true }
-}`
+}`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
-      builder.addServerComponent(filePath)
+      builder.addServerComponent(filePath);
 
-      expect(builder.getComponentCount()).toBe(1)
-    })
+      expect(builder.getComponentCount()).toBe(1);
+    });
 
-    it('should not add client components', () => {
-      const filePath = '/test/project/src/components/Client.tsx'
+    it("should not add client components", () => {
+      const filePath = "/test/project/src/components/Client.tsx";
       const code = `'use client'
 
 export default function Client() {
   return <div>Client</div>
-}`
+}`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
-      builder.addServerComponent(filePath)
+      builder.addServerComponent(filePath);
 
-      expect(builder.getComponentCount()).toBe(0)
-    })
+      expect(builder.getComponentCount()).toBe(0);
+    });
 
-    it('should extract dependencies from component', async () => {
-      const filePath = '/test/project/src/components/WithDeps.tsx'
+    it("should extract dependencies from component", async () => {
+      const filePath = "/test/project/src/components/WithDeps.tsx";
       const code = `import { useState } from 'react'
 import { z } from 'zod'
 
 export default function WithDeps() {
   return <div>Test</div>
-}`
+}`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
       vi.mocked(fsSync.promises.readFile).mockImplementation(async (path: any) => {
-        if (path.includes('manifest.json')) {
+        if (path.includes("manifest.json")) {
           return JSON.stringify({
             components: {},
             actions: {},
             importMap: { imports: {} },
             buildTime: new Date().toISOString(),
-          })
+          });
         }
 
-        if (path.includes('routes.json'))
-          return mockRoutesManifest()
+        if (path.includes("routes.json")) return mockRoutesManifest();
 
-        return code
-      })
+        return code;
+      });
 
-      builder.addServerComponent(filePath)
+      builder.addServerComponent(filePath);
 
-      expect(builder.getComponentCount()).toBe(1)
+      expect(builder.getComponentCount()).toBe(1);
 
-      const manifest = await builder.buildServerComponents()
+      const manifest = await builder.buildServerComponents();
 
-      const componentEntries = Object.values(manifest.components)
-      expect(componentEntries).toHaveLength(1)
-      expect(componentEntries[0].dependencies).toContain('zod')
-    })
+      const componentEntries = Object.values(manifest.components);
+      expect(componentEntries).toHaveLength(1);
+      expect(componentEntries[0].dependencies).toContain("zod");
+    });
 
-    it('should detect node imports', async () => {
-      const filePath = '/test/project/src/components/NodeImports.tsx'
+    it("should detect node imports", async () => {
+      const filePath = "/test/project/src/components/NodeImports.tsx";
       const code = `import fs from 'node:fs'
 import path from 'node:path'
 
 export default function NodeImports() {
   return <div>Test</div>
-}`
+}`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
       vi.mocked(fsSync.promises.readFile).mockImplementation(async (path: any) => {
-        if (path.includes('manifest.json')) {
+        if (path.includes("manifest.json")) {
           return JSON.stringify({
             components: {},
             actions: {},
             importMap: { imports: {} },
             buildTime: new Date().toISOString(),
-          })
+          });
         }
 
-        if (path.includes('routes.json'))
-          return mockRoutesManifest()
+        if (path.includes("routes.json")) return mockRoutesManifest();
 
-        return code
-      })
+        return code;
+      });
 
-      builder.addServerComponent(filePath)
+      builder.addServerComponent(filePath);
 
-      expect(builder.getComponentCount()).toBe(1)
+      expect(builder.getComponentCount()).toBe(1);
 
-      const manifest = await builder.buildServerComponents()
+      const manifest = await builder.buildServerComponents();
 
-      const componentEntries = Object.values(manifest.components)
-      expect(componentEntries).toHaveLength(1)
-      expect(componentEntries[0].hasNodeImports).toBe(true)
-    })
-  })
+      const componentEntries = Object.values(manifest.components);
+      expect(componentEntries).toHaveLength(1);
+      expect(componentEntries[0].hasNodeImports).toBe(true);
+    });
+  });
 
-  describe('buildImportGraph', () => {
-    it('should build import relationships', () => {
-      const srcDir = '/test/project/src'
+  describe("buildImportGraph", () => {
+    it("should build import relationships", () => {
+      const srcDir = "/test/project/src";
 
       vi.mocked(fsSync.existsSync).mockImplementation((path: any) => {
-        return path === srcDir || path.toString().endsWith('B.tsx')
-      })
+        return path === srcDir || path.toString().endsWith("B.tsx");
+      });
 
       vi.mocked(fsSync.statSync).mockImplementation((path: any) => {
-        if (path.toString().endsWith('B.tsx')) {
-          return { isFile: () => true, isDirectory: () => false } as any
+        if (path.toString().endsWith("B.tsx")) {
+          return { isFile: () => true, isDirectory: () => false } as any;
         }
-        throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
-      })
+        throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+      });
 
       vi.mocked(fsSync.readdirSync).mockReturnValue([
-        { name: 'A.tsx', isFile: () => true, isDirectory: () => false } as any,
-        { name: 'B.tsx', isFile: () => true, isDirectory: () => false } as any,
-      ])
+        { name: "A.tsx", isFile: () => true, isDirectory: () => false } as any,
+        { name: "B.tsx", isFile: () => true, isDirectory: () => false } as any,
+      ]);
 
       vi.mocked(fsSync.readFileSync)
         .mockReturnValueOnce(`import B from './B'
 export default function A() { return <B /> }`)
-        .mockReturnValueOnce(`export default function B() { return <div>B</div> }`)
+        .mockReturnValueOnce(`export default function B() { return <div>B</div> }`);
 
-      builder.buildImportGraph(srcDir)
+      builder.buildImportGraph(srcDir);
 
-      const graph = builder.getImportGraph()
-      const bPath = path.resolve(srcDir, 'B.tsx')
-      const aPath = path.join(srcDir, 'A.tsx')
+      const graph = builder.getImportGraph();
+      const bPath = path.resolve(srcDir, "B.tsx");
+      const aPath = path.join(srcDir, "A.tsx");
 
-      expect(graph.has(bPath)).toBe(true)
-      expect(graph.get(bPath)?.has(aPath)).toBe(true)
-    })
+      expect(graph.has(bPath)).toBe(true);
+      expect(graph.get(bPath)?.has(aPath)).toBe(true);
+    });
 
-    it('should skip node_modules in import graph', () => {
-      const srcDir = '/test/project/src'
+    it("should skip node_modules in import graph", () => {
+      const srcDir = "/test/project/src";
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
       vi.mocked(fsSync.readdirSync).mockReturnValue([
-        { name: 'node_modules', isFile: () => false, isDirectory: () => true } as any,
-        { name: 'Component.tsx', isFile: () => true, isDirectory: () => false } as any,
-      ])
+        { name: "node_modules", isFile: () => false, isDirectory: () => true } as any,
+        { name: "Component.tsx", isFile: () => true, isDirectory: () => false } as any,
+      ]);
 
-      builder.buildImportGraph(srcDir)
+      builder.buildImportGraph(srcDir);
 
-      const graph = builder.getImportGraph()
+      const graph = builder.getImportGraph();
       for (const [key, importers] of graph.entries()) {
-        expect(key).not.toContain('node_modules')
+        expect(key).not.toContain("node_modules");
         for (const importer of importers) {
-          expect(importer).not.toContain('node_modules')
+          expect(importer).not.toContain("node_modules");
         }
       }
-    })
-  })
+    });
+  });
 
-  describe('isOnlyImportedByClientComponents', () => {
-    it('should return false when file has no importers', () => {
-      const filePath = '/test/project/src/components/Orphan.tsx'
+  describe("isOnlyImportedByClientComponents", () => {
+    it("should return false when file has no importers", () => {
+      const filePath = "/test/project/src/components/Orphan.tsx";
 
-      builder.buildImportGraph('/test/project/src')
+      builder.buildImportGraph("/test/project/src");
 
-      const result = builder.isOnlyImportedByClientComponents(filePath)
+      const result = builder.isOnlyImportedByClientComponents(filePath);
 
-      expect(result).toBe(false)
-    })
+      expect(result).toBe(false);
+    });
 
-    it('should return true when only imported by client components', () => {
-      const srcDir = '/test/project/src'
-      const utilPath = path.join(srcDir, 'utils.ts')
+    it("should return true when only imported by client components", () => {
+      const srcDir = "/test/project/src";
+      const utilPath = path.join(srcDir, "utils.ts");
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
       vi.mocked(fsSync.readdirSync).mockReturnValue([
-        { name: 'utils.ts', isFile: () => true, isDirectory: () => false } as any,
-        { name: 'Client.tsx', isFile: () => true, isDirectory: () => false } as any,
-      ])
+        { name: "utils.ts", isFile: () => true, isDirectory: () => false } as any,
+        { name: "Client.tsx", isFile: () => true, isDirectory: () => false } as any,
+      ]);
 
-      vi.mocked(fsSync.readFileSync)
-        .mockReturnValueOnce(`export function util() { return 'test' }`)
+      vi.mocked(fsSync.readFileSync).mockReturnValueOnce(`export function util() { return 'test' }`)
         .mockReturnValueOnce(`'use client'
 import { util } from './utils'
-export default function Client() { return <div>{util()}</div> }`)
+export default function Client() { return <div>{util()}</div> }`);
 
-      builder.buildImportGraph(srcDir)
+      builder.buildImportGraph(srcDir);
 
-      const result = builder.isOnlyImportedByClientComponents(utilPath)
+      const result = builder.isOnlyImportedByClientComponents(utilPath);
 
-      expect(typeof result).toBe('boolean')
-    })
-  })
+      expect(typeof result).toBe("boolean");
+    });
+  });
 
-  describe('getComponentCount', () => {
-    it('should return total count of components and actions', () => {
-      const serverPath = '/test/project/src/Server.tsx'
-      const actionPath = '/test/project/src/action.ts'
+  describe("getComponentCount", () => {
+    it("should return total count of components and actions", () => {
+      const serverPath = "/test/project/src/Server.tsx";
+      const actionPath = "/test/project/src/action.ts";
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi
+        .mocked(fsSync.readFileSync)
         .mockReturnValueOnce(`export default function Server() { return <div>Server</div> }`)
         .mockReturnValueOnce(`'use server'
-export async function action() { return {} }`)
+export async function action() { return {} }`);
 
-      builder.addServerComponent(serverPath)
-      builder.addServerComponent(actionPath)
+      builder.addServerComponent(serverPath);
+      builder.addServerComponent(actionPath);
 
-      expect(builder.getComponentCount()).toBeGreaterThanOrEqual(1)
-    })
-  })
+      expect(builder.getComponentCount()).toBeGreaterThanOrEqual(1);
+    });
+  });
 
-  describe('clearCache', () => {
-    it('should clear build cache', async () => {
-      const filePath = '/test/project/src/CacheTest.tsx'
-      const code = `export default function CacheTest() { return <div>Test</div> }`
+  describe("clearCache", () => {
+    it("should clear build cache", async () => {
+      const filePath = "/test/project/src/CacheTest.tsx";
+      const code = `export default function CacheTest() { return <div>Test</div> }`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
 
       vi.mocked(fsSync.promises.readFile).mockImplementation(async (path: any) => {
-        if (path.includes('manifest.json')) {
+        if (path.includes("manifest.json")) {
           return JSON.stringify({
             components: {},
             actions: {},
             importMap: { imports: {} },
             buildTime: new Date().toISOString(),
-          })
+          });
         }
 
-        if (path.includes('routes.json'))
-          return mockRoutesManifest()
+        if (path.includes("routes.json")) return mockRoutesManifest();
 
-        return code
-      })
+        return code;
+      });
 
       vi.mocked(fsSync.promises.stat).mockResolvedValue({
         mtimeMs: 1000,
-      } as any)
+      } as any);
 
-      const buildSpy = vi.spyOn(builder as any, 'buildSingleComponent')
+      const buildSpy = vi.spyOn(builder as any, "buildSingleComponent");
 
-      await builder.rebuildComponent(filePath)
-      expect(buildSpy).toHaveBeenCalledTimes(1)
+      await builder.rebuildComponent(filePath);
+      expect(buildSpy).toHaveBeenCalledTimes(1);
 
-      await builder.rebuildComponent(filePath)
-      expect(buildSpy).toHaveBeenCalledTimes(1)
+      await builder.rebuildComponent(filePath);
+      expect(buildSpy).toHaveBeenCalledTimes(1);
 
-      builder.clearCache()
+      builder.clearCache();
 
-      await builder.rebuildComponent(filePath)
-      expect(buildSpy).toHaveBeenCalledTimes(2)
-    })
-  })
+      await builder.rebuildComponent(filePath);
+      expect(buildSpy).toHaveBeenCalledTimes(2);
+    });
+  });
 
-  describe('getTransformedComponentsForDevelopment', () => {
-    it('should return transformed components', async () => {
-      const filePath = '/test/project/src/Test.tsx'
-      const code = `export default function Test() { return <div>Test</div> }`
+  describe("getTransformedComponentsForDevelopment", () => {
+    it("should return transformed components", async () => {
+      const filePath = "/test/project/src/Test.tsx";
+      const code = `export default function Test() { return <div>Test</div> }`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
       vi.mocked(fsSync.promises.readFile).mockImplementation(async (path: any) => {
-        if (path.includes('manifest.json')) {
+        if (path.includes("manifest.json")) {
           return JSON.stringify({
             components: {},
             actions: {},
             importMap: { imports: {} },
             buildTime: new Date().toISOString(),
-          })
+          });
         }
 
-        if (path.includes('routes.json'))
-          return mockRoutesManifest()
+        if (path.includes("routes.json")) return mockRoutesManifest();
 
-        return code
-      })
+        return code;
+      });
 
-      builder.addServerComponent(filePath)
+      builder.addServerComponent(filePath);
 
-      const components = await builder.getTransformedComponentsForDevelopment()
+      const components = await builder.getTransformedComponentsForDevelopment();
 
-      expect(components).toHaveLength(1)
-      expect(components[0]).toHaveProperty('id')
-      expect(components[0]).toHaveProperty('code')
-    })
+      expect(components).toHaveLength(1);
+      expect(components[0]).toHaveProperty("id");
+      expect(components[0]).toHaveProperty("code");
+    });
 
-    it('should handle empty component list', async () => {
-      const components = await builder.getTransformedComponentsForDevelopment()
+    it("should handle empty component list", async () => {
+      const components = await builder.getTransformedComponentsForDevelopment();
 
-      expect(components).toEqual([])
-    })
-  })
+      expect(components).toEqual([]);
+    });
+  });
 
-  describe('rebuildComponent', () => {
-    it('should rebuild component and return result', async () => {
-      const filePath = '/test/project/src/Rebuild.tsx'
-      const code = `export default function Rebuild() { return <div>Rebuild</div> }`
+  describe("rebuildComponent", () => {
+    it("should rebuild component and return result", async () => {
+      const filePath = "/test/project/src/Rebuild.tsx";
+      const code = `export default function Rebuild() { return <div>Rebuild</div> }`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
 
       vi.mocked(fsSync.promises.readFile).mockImplementation(async (path: any) => {
-        if (path.includes('manifest.json')) {
+        if (path.includes("manifest.json")) {
           return JSON.stringify({
             components: {},
             actions: {},
             importMap: { imports: {} },
             buildTime: new Date().toISOString(),
-          })
+          });
         }
 
-        if (path.includes('routes.json'))
-          return mockRoutesManifest()
+        if (path.includes("routes.json")) return mockRoutesManifest();
 
-        return code
-      })
+        return code;
+      });
 
       vi.mocked(fsSync.promises.stat).mockResolvedValue({
         mtimeMs: Date.now(),
-      } as any)
+      } as any);
 
-      const result = await builder.rebuildComponent(filePath)
+      const result = await builder.rebuildComponent(filePath);
 
-      expect(result.success).toBe(true)
-      expect(result.componentId).toBeDefined()
-      expect(result.bundlePath).toBeDefined()
-    })
+      expect(result.success).toBe(true);
+      expect(result.componentId).toBeDefined();
+      expect(result.bundlePath).toBeDefined();
+    });
 
-    it('should use cache when file unchanged', async () => {
-      const filePath = '/test/project/src/Cached.tsx'
-      const code = `export default function Cached() { return <div>Cached</div> }`
+    it("should use cache when file unchanged", async () => {
+      const filePath = "/test/project/src/Cached.tsx";
+      const code = `export default function Cached() { return <div>Cached</div> }`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
 
       vi.mocked(fsSync.promises.readFile).mockImplementation(async (path: any) => {
-        if (path.includes('manifest.json')) {
+        if (path.includes("manifest.json")) {
           return JSON.stringify({
             components: {},
             actions: {},
             importMap: { imports: {} },
             buildTime: new Date().toISOString(),
-          })
+          });
         }
 
-        if (path.includes('routes.json'))
-          return mockRoutesManifest()
+        if (path.includes("routes.json")) return mockRoutesManifest();
 
-        return code
-      })
-
-      vi.mocked(fsSync.promises.stat).mockResolvedValue({
-        mtimeMs: 1000,
-      } as any)
-
-      const buildSpy = vi.spyOn(builder as any, 'buildSingleComponent')
-
-      await builder.rebuildComponent(filePath)
-
-      expect(buildSpy).toHaveBeenCalledTimes(1)
+        return code;
+      });
 
       vi.mocked(fsSync.promises.stat).mockResolvedValue({
         mtimeMs: 1000,
-      } as any)
+      } as any);
 
-      const result = await builder.rebuildComponent(filePath)
+      const buildSpy = vi.spyOn(builder as any, "buildSingleComponent");
 
-      expect(buildSpy).toHaveBeenCalledTimes(1)
-      expect(result.success).toBe(true)
+      await builder.rebuildComponent(filePath);
 
-      buildSpy.mockRestore()
-    })
-  })
+      expect(buildSpy).toHaveBeenCalledTimes(1);
 
-  describe('buildServerComponents', () => {
-    it('should build all server components and create manifest', async () => {
-      const filePath = '/test/project/src/Component.tsx'
-      const code = `export default function Component() { return <div>Test</div> }`
+      vi.mocked(fsSync.promises.stat).mockResolvedValue({
+        mtimeMs: 1000,
+      } as any);
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      const result = await builder.rebuildComponent(filePath);
+
+      expect(buildSpy).toHaveBeenCalledTimes(1);
+      expect(result.success).toBe(true);
+
+      buildSpy.mockRestore();
+    });
+  });
+
+  describe("buildServerComponents", () => {
+    it("should build all server components and create manifest", async () => {
+      const filePath = "/test/project/src/Component.tsx";
+      const code = `export default function Component() { return <div>Test</div> }`;
+
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
       vi.mocked(fsSync.promises.readFile).mockImplementation(async (path: any) => {
-        if (path.includes('manifest.json')) {
+        if (path.includes("manifest.json")) {
           return JSON.stringify({
             components: {},
             actions: {},
             importMap: { imports: {} },
             buildTime: new Date().toISOString(),
-          })
+          });
         }
 
-        if (path.includes('routes.json'))
-          return mockRoutesManifest()
+        if (path.includes("routes.json")) return mockRoutesManifest();
 
-        return code
-      })
+        return code;
+      });
 
-      builder.addServerComponent(filePath)
+      builder.addServerComponent(filePath);
 
-      const manifest = await builder.buildServerComponents()
+      const manifest = await builder.buildServerComponents();
 
-      expect(manifest).toHaveProperty('components')
-      expect(manifest).toHaveProperty('buildTime')
+      expect(manifest).toHaveProperty("components");
+      expect(manifest).toHaveProperty("buildTime");
 
-      expect(fsSync.promises.writeFile).toHaveBeenCalled()
-    })
+      expect(fsSync.promises.writeFile).toHaveBeenCalled();
+    });
 
-    it('should write server config when options provided', async () => {
+    it("should write server config when options provided", async () => {
       const builderWithConfig = new ServerComponentBuilder(mockProjectRoot, {
         ...mockOptions,
         csp: {
-          scriptSrc: ['self'],
+          scriptSrc: ["self"],
         },
-      })
+      });
 
-      await builderWithConfig.buildServerComponents()
+      await builderWithConfig.buildServerComponents();
 
       expect(fsSync.promises.writeFile).toHaveBeenCalledWith(
-        expect.stringContaining('config.json'),
+        expect.stringContaining("config.json"),
         expect.any(String),
-        'utf-8',
-      )
-    })
+        "utf-8",
+      );
+    });
 
-    it('should remove server config when no options provided', async () => {
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
+    it("should remove server config when no options provided", async () => {
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
 
-      await builder.buildServerComponents()
+      await builder.buildServerComponents();
 
-      expect(fsSync.promises.unlink).toHaveBeenCalled()
-    })
+      expect(fsSync.promises.unlink).toHaveBeenCalled();
+    });
 
-    it('should fail fast on malformed routes.json', async () => {
-      const filePath = '/test/project/src/MalformedTest.tsx'
-      const code = `export default function MalformedTest() { return <div>Test</div> }`
+    it("should fail fast on malformed routes.json", async () => {
+      const filePath = "/test/project/src/MalformedTest.tsx";
+      const code = `export default function MalformedTest() { return <div>Test</div> }`;
 
-      vi.mocked(fsSync.existsSync).mockReturnValue(true)
-      vi.mocked(fsSync.readFileSync).mockReturnValue(code)
+      vi.mocked(fsSync.existsSync).mockReturnValue(true);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(code);
 
       vi.mocked(fsSync.promises.readFile).mockImplementation(async (path: any) => {
-        if (path.includes('manifest.json')) {
+        if (path.includes("manifest.json")) {
           return JSON.stringify({
             components: {},
             actions: {},
             importMap: { imports: {} },
             buildTime: new Date().toISOString(),
-          })
+          });
         }
 
-        if (path.includes('routes.json'))
-          return 'not valid json'
+        if (path.includes("routes.json")) return "not valid json";
 
-        return code
-      })
+        return code;
+      });
 
-      builder.addServerComponent(filePath)
+      builder.addServerComponent(filePath);
 
-      await expect(builder.buildServerComponents()).rejects.toThrow(SyntaxError)
-    })
-  })
-})
+      await expect(builder.buildServerComponents()).rejects.toThrow(SyntaxError);
+    });
+  });
+});
 
-describe('hasComponentExport', () => {
-  describe('should return false for const-only modules', () => {
-    it('rejects single const export', () => {
-      expect(hasComponentExport('export const TEST_LABEL = "hello"')).toBe(false)
-    })
+describe("hasComponentExport", () => {
+  describe("should return false for const-only modules", () => {
+    it("rejects single const export", () => {
+      expect(hasComponentExport('export const TEST_LABEL = "hello"')).toBe(false);
+    });
 
-    it('rejects multiple const exports', () => {
+    it("rejects multiple const exports", () => {
       const code = `export const A = 1
 export const B = "test"
-export const C = { key: "value" }`
-      expect(hasComponentExport(code)).toBe(false)
-    })
+export const C = { key: "value" }`;
+      expect(hasComponentExport(code)).toBe(false);
+    });
 
-    it('rejects object const exports', () => {
-      expect(hasComponentExport('export const config = { port: 3000, host: "localhost" }')).toBe(false)
-    })
+    it("rejects object const exports", () => {
+      expect(hasComponentExport('export const config = { port: 3000, host: "localhost" }')).toBe(
+        false,
+      );
+    });
 
-    it('rejects array const exports', () => {
-      expect(hasComponentExport('export const items = [1, 2, 3]')).toBe(false)
-    })
+    it("rejects array const exports", () => {
+      expect(hasComponentExport("export const items = [1, 2, 3]")).toBe(false);
+    });
 
-    it('rejects re-exports of values', () => {
-      expect(hasComponentExport('export { FOO, BAR } from "./constants"')).toBe(false)
-    })
+    it("rejects re-exports of values", () => {
+      expect(hasComponentExport('export { FOO, BAR } from "./constants"')).toBe(false);
+    });
 
-    it('rejects type-only exports', () => {
-      expect(hasComponentExport('export type Foo = { bar: string }')).toBe(false)
-    })
+    it("rejects type-only exports", () => {
+      expect(hasComponentExport("export type Foo = { bar: string }")).toBe(false);
+    });
 
-    it('rejects interface exports', () => {
-      expect(hasComponentExport('export interface Config { port: number }')).toBe(false)
-    })
+    it("rejects interface exports", () => {
+      expect(hasComponentExport("export interface Config { port: number }")).toBe(false);
+    });
 
-    it('rejects enum exports', () => {
-      expect(hasComponentExport('export enum Status { Active, Inactive }')).toBe(false)
-    })
-  })
+    it("rejects enum exports", () => {
+      expect(hasComponentExport("export enum Status { Active, Inactive }")).toBe(false);
+    });
+  });
 
-  describe('should return true for modules with function/component exports', () => {
-    it('detects export default function', () => {
-      expect(hasComponentExport('export default function Page() { return <div/> }')).toBe(true)
-    })
+  describe("should return true for modules with function/component exports", () => {
+    it("detects export default function", () => {
+      expect(hasComponentExport("export default function Page() { return <div/> }")).toBe(true);
+    });
 
-    it('detects named function export', () => {
-      expect(hasComponentExport('export function getData() { return 1 }')).toBe(true)
-    })
+    it("detects named function export", () => {
+      expect(hasComponentExport("export function getData() { return 1 }")).toBe(true);
+    });
 
-    it('detects async function export', () => {
-      expect(hasComponentExport('export async function fetchData() { return await fetch("/") }')).toBe(true)
-    })
+    it("detects async function export", () => {
+      expect(
+        hasComponentExport('export async function fetchData() { return await fetch("/") }'),
+      ).toBe(true);
+    });
 
-    it('detects arrow function const export', () => {
-      expect(hasComponentExport('export const handler = () => {}')).toBe(true)
-    })
+    it("detects arrow function const export", () => {
+      expect(hasComponentExport("export const handler = () => {}")).toBe(true);
+    });
 
-    it('detects typed arrow function export', () => {
-      expect(hasComponentExport('export const handler: Handler = () => {}')).toBe(true)
-    })
+    it("detects typed arrow function export", () => {
+      expect(hasComponentExport("export const handler: Handler = () => {}")).toBe(true);
+    });
 
-    it('detects async arrow function export', () => {
-      expect(hasComponentExport('export const handler = async () => {}')).toBe(true)
-    })
+    it("detects async arrow function export", () => {
+      expect(hasComponentExport("export const handler = async () => {}")).toBe(true);
+    });
 
-    it('detects single-param arrow function', () => {
-      expect(hasComponentExport('export const fn = x => x')).toBe(true)
-    })
+    it("detects single-param arrow function", () => {
+      expect(hasComponentExport("export const fn = x => x")).toBe(true);
+    });
 
-    it('detects export default class', () => {
-      expect(hasComponentExport('export default class MyComponent {}')).toBe(true)
-    })
+    it("detects export default class", () => {
+      expect(hasComponentExport("export default class MyComponent {}")).toBe(true);
+    });
 
-    it('detects default anonymous function', () => {
-      expect(hasComponentExport('export default function() { return null }')).toBe(true)
-    })
+    it("detects default anonymous function", () => {
+      expect(hasComponentExport("export default function() { return null }")).toBe(true);
+    });
 
-    it('detects function among consts', () => {
+    it("detects function among consts", () => {
       const code = `export const LABEL = "hello"
-export function Component() { return <div>{LABEL}</div> }`
-      expect(hasComponentExport(code)).toBe(true)
-    })
+export function Component() { return <div>{LABEL}</div> }`;
+      expect(hasComponentExport(code)).toBe(true);
+    });
 
-    it('detects default export via variable assignment', () => {
+    it("detects default export via variable assignment", () => {
       const code = `function Page() { return <div/> }
-export default Page`
-      expect(hasComponentExport(code)).toBe(true)
-    })
-  })
-})
+export default Page`;
+      expect(hasComponentExport(code)).toBe(true);
+    });
+  });
+});
 
-describe('hasComponentExport - additional coverage', () => {
-  it('detects named class export', () => {
-    expect(hasComponentExport('export class MyComponent {}')).toBe(true)
-  })
+describe("hasComponentExport - additional coverage", () => {
+  it("detects named class export", () => {
+    expect(hasComponentExport("export class MyComponent {}")).toBe(true);
+  });
 
-  it('detects let arrow function export', () => {
-    expect(hasComponentExport('export let handler = () => {}')).toBe(true)
-  })
+  it("detects let arrow function export", () => {
+    expect(hasComponentExport("export let handler = () => {}")).toBe(true);
+  });
 
-  it('detects var function expression export', () => {
-    expect(hasComponentExport('export var handler = function() {}')).toBe(true)
-  })
+  it("detects var function expression export", () => {
+    expect(hasComponentExport("export var handler = function() {}")).toBe(true);
+  });
 
-  it('detects const function expression export', () => {
-    expect(hasComponentExport('export const Foo = function Foo() {}')).toBe(true)
-  })
+  it("detects const function expression export", () => {
+    expect(hasComponentExport("export const Foo = function Foo() {}")).toBe(true);
+  });
 
-  it('detects async const function expression export', () => {
-    expect(hasComponentExport('export const Foo = async function() {}')).toBe(true)
-  })
+  it("detects async const function expression export", () => {
+    expect(hasComponentExport("export const Foo = async function() {}")).toBe(true);
+  });
 
-  it('rejects parenthesized expression (grouped math)', () => {
-    expect(hasComponentExport('export const value = (1 + 2)')).toBe(false)
-  })
+  it("rejects parenthesized expression (grouped math)", () => {
+    expect(hasComponentExport("export const value = (1 + 2)")).toBe(false);
+  });
 
-  it('rejects parenthesized identifier', () => {
-    expect(hasComponentExport('export const value = (someIdentifier)')).toBe(false)
-  })
+  it("rejects parenthesized identifier", () => {
+    expect(hasComponentExport("export const value = (someIdentifier)")).toBe(false);
+  });
 
-  it('rejects parenthesized object', () => {
-    expect(hasComponentExport('export const obj = ({})')).toBe(false)
-  })
-})
+  it("rejects parenthesized object", () => {
+    expect(hasComponentExport("export const obj = ({})")).toBe(false);
+  });
+});

@@ -1,17 +1,13 @@
-'use client'
+"use client";
 
-import type { ReactNode } from 'react'
-import { useState } from 'react'
+import type { ReactNode } from "react";
+import { useState } from "react";
 
-export default function ErrorLayoutClient({
-  children,
-}: {
-  children: ReactNode
-}) {
-  const [shouldThrow, setShouldThrow] = useState(false)
+export default function ErrorLayoutClient({ children }: { children: ReactNode }) {
+  const [shouldThrow, setShouldThrow] = useState(false);
 
   if (shouldThrow) {
-    throw new Error('Test error from layout')
+    throw new Error("Test error from layout");
   }
 
   return (
@@ -28,5 +24,5 @@ export default function ErrorLayoutClient({
       </div>
       {children}
     </div>
-  )
+  );
 }

@@ -1,12 +1,11 @@
 // oxlint-disable @typescript-eslint/no-floating-promises
 (async function () {
   try {
-    if (typeof globalThis.resolveServerFunctionsForComponent === 'function')
-      await globalThis.resolveServerFunctionsForComponent('{component_id}')
+    if (typeof globalThis.resolveServerFunctionsForComponent === "function")
+      await globalThis.resolveServerFunctionsForComponent("{component_id}");
 
-    return { success: true, resolved: true }
+    return { success: true, resolved: true };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
-  catch (error) {
-    return { success: false, error: error.message }
-  }
-})()
+})();
