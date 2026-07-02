@@ -1,29 +1,37 @@
 {
   "name": "@rari/use-cache",
-  "type": "module",
   "version": "0.14.12",
   "description": "Native 'use cache' directive transform addon for rari",
-  "author": "Ryan Skinner",
-  "license": "MIT",
+  "keywords": [
+    "napi",
+    "napi-rs",
+    "rari",
+    "react",
+    "rust",
+    "server-components",
+    "transform",
+    "use-cache"
+  ],
   "homepage": "https://github.com/rari-build/rari#readme",
-  "repository": {
-    "directory": "packages/use-cache",
-    "type": "git",
-    "url": "git+https://github.com/rari-build/rari.git"
-  },
   "bugs": {
     "url": "https://github.com/rari-build/rari/issues"
   },
-  "keywords": [
-    "rari",
-    "use-cache",
-    "transform",
-    "napi",
-    "napi-rs",
-    "rust",
-    "react",
-    "server-components"
+  "license": "MIT",
+  "author": "Ryan Skinner",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rari-build/rari.git",
+    "directory": "packages/use-cache"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist"
   ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -41,17 +49,6 @@
       "default": "./dist/runtime/deterministic-stringify.mjs"
     }
   },
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
-  "files": [
-    "LICENSE",
-    "README.md",
-    "dist"
-  ],
-  "engines": {
-    "node": ">=22.18.0"
-  },
   "scripts": {
     "build": "pnpm --silent clean && pnpm typecheck && vp pack",
     "clean": "node --eval \"import('node:fs').then(fs => fs.rmSync('dist', { recursive: true, force: true }))\"",
@@ -62,6 +59,11 @@
   "dependencies": {
     "quick-lru": "catalog:runtime"
   },
+  "devDependencies": {
+    "@types/node": "catalog:typescript",
+    "vite": "catalog:build",
+    "vite-plus": "catalog:build"
+  },
   "optionalDependencies": {
     "@rari/use-cache-darwin-arm64": "workspace:*",
     "@rari/use-cache-darwin-x64": "workspace:*",
@@ -70,8 +72,7 @@
     "@rari/use-cache-win32-arm64": "workspace:*",
     "@rari/use-cache-win32-x64": "workspace:*"
   },
-  "devDependencies": {
-    "@types/node": "catalog:typescript",
-    "vite-plus": "catalog:build"
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

@@ -1,35 +1,34 @@
 {
   "name": "create-rari-app",
-  "type": "module",
   "version": "0.5.17",
   "description": "Create Runtime Accelerated Rendering Infrastructure (rari) applications with no build configuration",
-  "author": "Ryan Skinner",
-  "license": "MIT",
+  "keywords": [
+    "boilerplate",
+    "cli",
+    "create-app",
+    "framework",
+    "generator",
+    "project-template",
+    "rari",
+    "react",
+    "rust",
+    "scaffolding",
+    "server-components",
+    "starter",
+    "template",
+    "zero-config"
+  ],
   "homepage": "https://github.com/rari-build/rari#readme",
+  "bugs": {
+    "url": "https://github.com/rari-build/rari/issues"
+  },
+  "license": "MIT",
+  "author": "Ryan Skinner",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rari-build/rari.git",
     "directory": "packages/create-rari-app"
   },
-  "bugs": {
-    "url": "https://github.com/rari-build/rari/issues"
-  },
-  "keywords": [
-    "rari",
-    "react",
-    "scaffolding",
-    "cli",
-    "create-app",
-    "generator",
-    "boilerplate",
-    "template",
-    "server-components",
-    "rust",
-    "framework",
-    "zero-config",
-    "starter",
-    "project-template"
-  ],
   "bin": {
     "create-rari-app": "dist/index.mjs"
   },
@@ -39,6 +38,7 @@
     "dist",
     "templates"
   ],
+  "type": "module",
   "scripts": {
     "build": "pnpm --silent clean && pnpm typecheck && vp pack",
     "dev": "vp pack --watch",
@@ -53,6 +53,7 @@
   "devDependencies": {
     "@types/node": "catalog:typescript",
     "@typescript/native-preview": "catalog:typescript",
+    "vite": "catalog:build",
     "vite-plus": "catalog:build"
   }
 }
