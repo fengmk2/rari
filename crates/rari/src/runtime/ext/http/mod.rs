@@ -13,8 +13,8 @@ impl ExtensionTrait<()> for deno_http_runtime {
 extension!(
     init_http,
     deps = [rari],
-    esm_entry_point = "ext:init_http/init_http.js",
-    esm = [ dir "src/runtime/ext/http", "init_http.js" ],
+    esm_entry_point = "ext:init_http/init_http.ts",
+    esm = [ dir "src/runtime/ext/http", "init_http.ts" ],
 );
 impl ExtensionTrait<()> for init_http {
     fn init((): ()) -> Extension {
@@ -26,6 +26,7 @@ impl ExtensionTrait<()> for deno_http::deno_http {
         deno_http::deno_http::init(deno_http::Options {
             http2_builder_hook: None,
             no_legacy_abort: false,
+            automatic_compression: false,
         })
     }
 }

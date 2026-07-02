@@ -1,8 +1,9 @@
+use std::string::ToString;
+
 use axum::{
     body::Body,
     extract::State,
-    http::{HeaderValue, StatusCode},
-    response::Response,
+    http::{HeaderMap, HeaderValue, Request, Response, StatusCode},
 };
 use tracing::error;
 
@@ -13,11 +14,21 @@ use crate::server::{
     routing::api_error::{ApiRouteError, create_generic_error_response},
 };
 
+fn add_cors_headers(
+    response_headers: &mut HeaderMap,
+    origin: Option<&str>,
+    allowed_origins: &[String],
+    allow_credentials: bool,
+    max_age: u32,
+) {
+    add_api_cors_headers(response_headers, origin, allowed_origins, allow_credentials, max_age);
+}
+
 #[axum::debug_handler]
 pub async fn api_cors_preflight(
     State(state): State<ServerState>,
-    req: axum::http::Request<Body>,
-) -> Response {
+    req: Request<Body>,
+) -> Response<Body> {
     let path = req.uri().path();
     let request_headers = req.headers();
 
@@ -59,17 +70,13 @@ pub async fn api_cors_preflight(
 #[axum::debug_handler]
 pub async fn handle_api_route(
     State(state): State<ServerState>,
-    req: axum::http::Request<Body>,
-) -> Result<axum::http::Response<Body>, StatusCode> {
+    req: Request<Body>,
+) -> Result<Response<Body>, StatusCode> {
     let path = req.uri().path().to_string();
     let method = req.method().to_string();
     let is_development = state.config.is_development();
 
-    let origin = req
-        .headers()
-        .get("origin")
-        .and_then(|v| v.to_str().ok())
-        .map(std::string::ToString::to_string);
+    let origin = req.headers().get("origin").and_then(|v| v.to_str().ok()).map(ToString::to_string);
     let cors_config = state.config.cors_config();
 
     let api_handler = match &state.api_route_handler {
@@ -93,7 +100,7 @@ pub async fn handle_api_route(
                     .get_property("allowed_methods")
                     .unwrap_or("")
                     .split(',')
-                    .map(std::string::ToString::to_string)
+                    .map(ToString::to_string)
                     .collect::<Vec<_>>();
 
                 let api_error = ApiRouteError::MethodNotAllowed {
@@ -105,7 +112,7 @@ pub async fn handle_api_route(
 
                 let mut response = api_error.to_http_response(is_development);
                 if is_development {
-                    add_api_cors_headers(
+                    add_cors_headers(
                         response.headers_mut(),
                         origin.as_deref(),
                         &cors_config.allowed_origins,
@@ -123,7 +130,7 @@ pub async fn handle_api_route(
 
             let mut response = api_error.to_http_response(is_development);
             if is_development {
-                add_api_cors_headers(
+                add_cors_headers(
                     response.headers_mut(),
                     origin.as_deref(),
                     &cors_config.allowed_origins,
@@ -139,7 +146,7 @@ pub async fn handle_api_route(
         Ok(mut response) => {
             let headers = response.headers_mut();
             if is_development {
-                add_api_cors_headers(
+                add_cors_headers(
                     headers,
                     origin.as_deref(),
                     &cors_config.allowed_origins,
@@ -186,7 +193,7 @@ pub async fn handle_api_route(
             let mut response = api_error.to_http_response(is_development);
             let headers = response.headers_mut();
             if is_development {
-                add_api_cors_headers(
+                add_cors_headers(
                     headers,
                     origin.as_deref(),
                     &cors_config.allowed_origins,

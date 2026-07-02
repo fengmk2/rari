@@ -1,19 +1,34 @@
+pub mod cache;
+
+use cache::redis_cache;
 use deno_core::{Extension, extension};
 
 use super::ExtensionTrait;
 
-pub mod redis_cache;
-
 extension!(
     rari,
-    esm_entry_point = "ext:rari/rari.ts",
+    deps = [init_utilities, init_web],
+    esm_entry_point = "ext:rari/core/rari.ts",
     esm = [
         dir "src/runtime/ext/rari",
-        "rari.ts",
-        "cookies.ts",
-        "api_handler.ts",
-        "component_loader.ts",
-        "metadata_collector.ts",
+        "core/rari.ts",
+        "http/api_handler.ts",
+        "rsc/client_registry.ts",
+        "react/component_loader.ts",
+        "http/cookies.ts",
+        "react/metadata_collector.ts",
+        "rsc/rsc_modules.ts",
+        "rsc/server_functions.ts"
+    ],
+    lazy_loaded_esm = [
+        dir "src/runtime/ext/rari",
+        "react/vendor/react.js",
+        "react/vendor/react-server.js",
+        "react/vendor/react-jsx-runtime.js",
+        "react/vendor/react-dom-server.js",
+        "react/vendor/react-server-dom-webpack-client.js",
+        "react/vendor/react-server-dom-webpack-server.js",
+        "react/vendor/index.js",
     ],
 );
 

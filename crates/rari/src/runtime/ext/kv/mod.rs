@@ -1,15 +1,19 @@
 use std::path::PathBuf;
 
 use deno_core::{Extension, extension};
-use deno_kv::{dynamic::MultiBackendDbHandler, remote::RemoteDbHandler, sqlite::SqliteDbHandler};
+use deno_kv::{
+    dynamic::MultiBackendDbHandler,
+    remote::{HttpOptions, RemoteDbHandler},
+    sqlite::SqliteDbHandler,
+};
 
 use super::ExtensionTrait;
 
 extension!(
     init_kv,
     deps = [rari],
-    esm_entry_point = "ext:init_kv/init_kv.js",
-    esm = [ dir "src/runtime/ext/kv", "init_kv.js" ],
+    esm_entry_point = "ext:init_kv/init_kv.ts",
+    esm = [ dir "src/runtime/ext/kv", "init_kv.ts" ],
 );
 impl ExtensionTrait<()> for init_kv {
     fn init((): ()) -> Extension {
@@ -29,7 +33,7 @@ pub fn extensions(store: KvStore, is_snapshot: bool) -> Vec<Extension> {
 #[derive(Clone)]
 enum KvStoreBuilder {
     Local { path: Option<PathBuf>, rng_seed: Option<u64> },
-    Remote { http_options: deno_kv::remote::HttpOptions },
+    Remote { http_options: HttpOptions },
 }
 
 #[derive(Clone, Copy)]
@@ -93,7 +97,7 @@ impl KvStore {
         Self(KvStoreBuilder::Local { path, rng_seed }, config)
     }
 
-    pub fn new_remote(http_options: deno_kv::remote::HttpOptions, config: KvConfig) -> Self {
+    pub fn new_remote(http_options: HttpOptions, config: KvConfig) -> Self {
         Self(KvStoreBuilder::Remote { http_options }, config)
     }
 

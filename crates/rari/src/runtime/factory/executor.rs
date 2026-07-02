@@ -1,8 +1,9 @@
-use std::rc::Rc;
+use std::{env, rc::Rc, string::ToString, time::Duration};
 
-use deno_core::JsRuntime;
+use deno_core::{JsRuntime, error::AnyError, v8};
 use rari_error::RariError;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
+use tokio::{sync::mpsc, time::timeout};
 use tracing::error;
 
 use crate::{
@@ -17,7 +18,9 @@ use crate::{
                 run_event_loop_with_promise_timeout, v8_to_json,
             },
         },
-        module::loader::RariModuleLoader,
+        module_loader::RariModuleLoader,
+        ops::StreamOpState,
+        transpile,
     },
     with_scope,
 };
@@ -50,7 +53,7 @@ pub async fn execute_script(
     module_loader: &Rc<RariModuleLoader>,
     script_name: &str,
     script_code: &str,
-) -> Result<JsonValue, RariError> {
+) -> Result<Value, RariError> {
     if let Some(cached_result) = module_loader.module_caching.get(script_name).await {
         return Ok(cached_result);
     }
@@ -69,7 +72,22 @@ pub async fn execute_script(
         return execute_as_module(runtime, module_loader, script_name, &script_code_string).await;
     }
 
-    execute_as_script(runtime, module_loader, script_name, &script_code_string).await
+    execute_as_script(
+        runtime,
+        module_loader,
+        script_name,
+        &script_code_string,
+        default_promise_timeout_ms(),
+    )
+    .await
+}
+
+fn default_promise_timeout_ms() -> u64 {
+    env::var("RARI_PROMISE_RESOLUTION_TIMEOUT_MS").ok().and_then(|s| s.parse().ok()).unwrap_or(5000)
+}
+
+fn streaming_promise_timeout_ms() -> u64 {
+    env::var("RARI_STREAMING_SCRIPT_TIMEOUT_MS").ok().and_then(|s| s.parse().ok()).unwrap_or(30000)
 }
 
 async fn execute_as_module(
@@ -77,7 +95,7 @@ async fn execute_as_module(
     module_loader: &Rc<RariModuleLoader>,
     script_name: &str,
     script_code: &str,
-) -> Result<JsonValue, RariError> {
+) -> Result<Value, RariError> {
     let specifier_str = module_loader.create_specifier(script_name, "rari_internal");
 
     module_loader.add_module(&specifier_str, script_name, script_code.to_string()).await;
@@ -108,8 +126,8 @@ async fn execute_as_module(
 
     match eval_result {
         Ok(()) => {
-            match tokio::time::timeout(
-                std::time::Duration::from_millis(10),
+            match timeout(
+                Duration::from_millis(10),
                 run_event_loop_with_error_handling(
                     runtime,
                     &format!("module execution for '{script_name}'"),
@@ -148,7 +166,7 @@ async fn execute_as_module(
 
     module_loader.mark_module_evaluated(script_name);
 
-    Ok(JsonValue::Null)
+    Ok(Value::Null)
 }
 
 async fn execute_as_script(
@@ -156,8 +174,27 @@ async fn execute_as_script(
     module_loader: &Rc<RariModuleLoader>,
     script_name: &str,
     script_code: &str,
-) -> Result<JsonValue, RariError> {
-    match runtime.execute_script("script", script_code.to_string()) {
+    promise_timeout_ms: u64,
+) -> Result<Value, RariError> {
+    let transpiled_code = if script_name.ends_with(".ts") || script_name.ends_with(".tsx") {
+        match transpile::maybe_transpile_source(
+            deno_core::ModuleName::from(script_name.to_string()),
+            deno_core::ModuleCodeString::from(script_code.to_string()),
+        ) {
+            Ok((code, _source_map)) => Some(code.to_string()),
+            Err(e) => {
+                return Err(RariError::js_execution(format!(
+                    "Failed to transpile TypeScript in script '{script_name}': {e}"
+                )));
+            }
+        }
+    } else {
+        None
+    };
+
+    let code_to_execute = transpiled_code.as_deref().unwrap_or(script_code);
+
+    match runtime.execute_script("script", code_to_execute.to_string()) {
         Ok(global_v8_val) => {
             let is_promise_result = with_scope!(runtime, |scope| {
                 let local_v8_val = deno_core::v8::Local::new(scope, &global_v8_val);
@@ -165,13 +202,14 @@ async fn execute_as_script(
             });
 
             if is_promise_result {
-                handle_promise_result(runtime, script_name, global_v8_val).await
+                handle_promise_result(runtime, script_name, global_v8_val, promise_timeout_ms).await
             } else {
                 handle_non_promise_result(runtime, global_v8_val)
             }
         }
         Err(e) => {
-            handle_script_error(runtime, module_loader, script_name, script_code, e.into()).await
+            handle_script_error(runtime, module_loader, script_name, code_to_execute, e.into())
+                .await
         }
     }
 }
@@ -179,8 +217,9 @@ async fn execute_as_script(
 async fn handle_promise_result(
     runtime: &mut JsRuntime,
     script_name: &str,
-    global_v8_val: deno_core::v8::Global<deno_core::v8::Value>,
-) -> Result<JsonValue, RariError> {
+    global_v8_val: v8::Global<v8::Value>,
+    promise_timeout_ms: u64,
+) -> Result<Value, RariError> {
     let setup_promise_storage = r"
         (function() {
             if (!globalThis['~promises']) globalThis['~promises'] = {};
@@ -192,7 +231,7 @@ async fn handle_promise_result(
         let local_v8_val = deno_core::v8::Local::new(scope, &global_v8_val);
         let context = scope.get_current_context();
         let global = context.global(scope);
-        let key = match deno_core::v8::String::new(scope, "__temp_promise_ref__") {
+        let key = match v8::String::new(scope, "__temp_promise_ref__") {
             Some(key) => key,
             None => {
                 error!("Failed to create V8 string for __temp_promise_ref__");
@@ -211,11 +250,6 @@ async fn handle_promise_result(
 
     match runtime.execute_script(format!("{script_name}_promise_setup"), setup_script.to_string()) {
         Ok(_) => {
-            let promise_timeout_ms = std::env::var("RARI_PROMISE_RESOLUTION_TIMEOUT_MS")
-                .ok()
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(5000);
-
             run_event_loop_with_promise_timeout(runtime, script_name, promise_timeout_ms).await?;
 
             let extract_script = PROMISE_EXTRACT_SCRIPT;
@@ -229,8 +263,8 @@ async fn handle_promise_result(
                         v8_to_json(scope, local_v8_val)
                     })?;
 
-                    if let JsonValue::Object(ref obj) = json_result
-                        && let Some(JsonValue::Bool(true)) = obj.get("~error")
+                    if let Value::Object(ref obj) = json_result
+                        && let Some(Value::Bool(true)) = obj.get("~error")
                     {
                         let message =
                             obj.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
@@ -260,15 +294,15 @@ async fn handle_promise_result(
 
 fn handle_non_promise_result(
     runtime: &mut JsRuntime,
-    global_v8_val: deno_core::v8::Global<deno_core::v8::Value>,
-) -> Result<JsonValue, RariError> {
+    global_v8_val: v8::Global<v8::Value>,
+) -> Result<Value, RariError> {
     let json_result = with_scope!(runtime, |scope| {
         let local_v8_val = deno_core::v8::Local::new(scope, global_v8_val);
         v8_to_json(scope, local_v8_val)
     })?;
 
-    if let JsonValue::Object(ref obj) = json_result
-        && let Some(JsonValue::Bool(true)) = obj.get("~error")
+    if let Value::Object(ref obj) = json_result
+        && let Some(Value::Bool(true)) = obj.get("~error")
     {
         let message = obj.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
         let stack = obj.get("stack").and_then(|v| v.as_str());
@@ -288,8 +322,8 @@ async fn handle_script_error(
     module_loader: &Rc<RariModuleLoader>,
     script_name: &str,
     script_code: &str,
-    e: deno_core::error::AnyError,
-) -> Result<JsonValue, RariError> {
+    e: AnyError,
+) -> Result<Value, RariError> {
     let error_string = e.to_string();
 
     if error_string.contains("SyntaxError") {
@@ -338,7 +372,7 @@ async fn retry_as_module(
     module_loader: &Rc<RariModuleLoader>,
     script_name: &str,
     script_code: &str,
-) -> Result<JsonValue, RariError> {
+) -> Result<Value, RariError> {
     let specifier_str = module_loader.create_specifier(script_name, "rari_internal");
     let module_code = module_loader.transform_to_esmodule(script_code, script_name);
 
@@ -375,5 +409,57 @@ async fn retry_as_module(
     run_event_loop_with_error_handling(runtime, &format!("module exec for '{script_name}'"))
         .await?;
 
-    Ok(JsonValue::Null)
+    Ok(Value::Null)
+}
+
+pub async fn execute_script_for_streaming(
+    runtime: &mut JsRuntime,
+    module_loader: &Rc<RariModuleLoader>,
+    script_name: &str,
+    script_code: &str,
+    chunk_sender: mpsc::Sender<Result<Vec<u8>, String>>,
+) -> Result<(), RariError> {
+    {
+        let op_state_rc = runtime.op_state();
+        let mut op_state = op_state_rc.borrow_mut();
+        if let Some(stream_state) = op_state.try_borrow_mut::<StreamOpState>() {
+            stream_state.chunk_sender = Some(chunk_sender);
+        } else {
+            return Err(RariError::js_runtime(
+                "StreamOpState not available in runtime".to_string(),
+            ));
+        }
+    }
+
+    let result = execute_as_script(
+        runtime,
+        module_loader,
+        script_name,
+        script_code,
+        streaming_promise_timeout_ms(),
+    )
+    .await;
+
+    let leftover_sender = {
+        let op_state_rc = runtime.op_state();
+        let mut op_state = op_state_rc.borrow_mut();
+        op_state
+            .try_borrow_mut::<StreamOpState>()
+            .and_then(|stream_state| stream_state.chunk_sender.take())
+    };
+
+    if let Some(sender) = leftover_sender {
+        let error_message = if let Err(err) = &result {
+            err.to_string()
+        } else {
+            format!("Streaming script '{script_name}' ended without completing the stream")
+        };
+
+        let _ = sender
+            .send(Err(format!("Streaming script '{script_name}' failed: {error_message}")))
+            .await;
+    }
+
+    result?;
+    Ok(())
 }

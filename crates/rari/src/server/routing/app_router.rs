@@ -4,7 +4,7 @@ use cow_utils::CowUtils;
 use rari_error::RariError;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use urlencoding::decode;
+use tokio::fs;
 
 #[cfg(test)]
 use crate::server::routing::types::RouteSegmentType;
@@ -13,7 +13,7 @@ use crate::server::routing::types::{ParamValue, RouteSegment};
 fn parse_decoded_path_segments(path: &str) -> Vec<String> {
     path.split('/')
         .filter(|s| !s.is_empty())
-        .map(|s| decode(s).unwrap_or_else(|_| s.to_string().into()).into_owned())
+        .map(|s| urlencoding::decode(s).unwrap_or_else(|_| s.to_string().into()).into_owned())
         .collect()
 }
 
@@ -148,7 +148,7 @@ impl AppRouter {
     }
 
     pub async fn from_file(path: &str) -> Result<Self, RariError> {
-        let content = tokio::fs::read_to_string(path)
+        let content = fs::read_to_string(path)
             .await
             .map_err(|e| RariError::io(format!("Failed to read manifest: {e}")))?;
 

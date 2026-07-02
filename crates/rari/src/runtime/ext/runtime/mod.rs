@@ -1,9 +1,11 @@
-use std::{num::NonZero, rc::Rc, sync::Arc};
+use std::{num::NonZero, rc::Rc, sync::Arc, thread};
 
 use ::deno_permissions::Permissions;
 use deno_core::{
-    CrossIsolateStore, Extension, ExtensionFileSource, extension,
-    v8::{BackingStore, SharedRef},
+    CrossIsolateStore, Extension,
+    error::JsError,
+    extension,
+    v8::{BackingStore, SharedRef, icu},
 };
 use deno_process::deno_process;
 use deno_runtime::{
@@ -28,8 +30,9 @@ use sys_traits::impls::RealSys;
 use super::{
     ExtensionOptions, ExtensionTrait, node::resolvers::Resolver, web::PermissionsContainer,
 };
+use crate::runtime::module_loader::RariModuleLoader;
 
-fn format_js_error(error: &deno_core::error::JsError) -> String {
+fn format_js_error(error: &JsError) -> String {
     deno_format_js_error(error, None)
 }
 
@@ -42,15 +45,15 @@ fn build_permissions(
 
 extension!(
     init_console,
-    deps = [rari],
-    esm_entry_point = "ext:init_console/init_console.js",
-    esm = [ dir "src/runtime/ext/runtime", "init_console.js" ],
+    deps = [init_utilities],
+    esm_entry_point = "ext:init_console/init_console.ts",
+    esm = [ dir "src/runtime/ext/runtime", "init_console.ts" ],
 );
 
 extension!(
     init_runtime,
-    esm_entry_point = "ext:init_runtime/init_runtime.js",
-    esm = [ dir "src/runtime/ext/runtime",  "init_runtime.js" ],
+    esm_entry_point = "ext:init_runtime/init_runtime.ts",
+    esm = [ dir "src/runtime/ext/runtime",  "init_runtime.ts" ],
     state = |state| {
         let options = BootstrapOptions {
             args: vec![
@@ -64,16 +67,11 @@ extension!(
         let permissions = build_permissions(container);
         state.put(permissions);
     },
-    customizer = |e: &mut Extension| {
-        e.esm_files.to_mut().push(
-            ExtensionFileSource::new("ext:deno_features/flags.js", deno_features::JS_SOURCE)
-        );
-    }
 );
 
 impl ExtensionTrait<()> for init_console {
     fn init((): ()) -> Extension {
-        deno_terminal::colors::set_use_color(true);
+        colors::set_use_color(true);
         init_console::init()
     }
 }
@@ -91,7 +89,13 @@ impl ExtensionTrait<()> for deno_runtime::runtime {
         ext.esm_files = ext
             .esm_files
             .iter()
-            .filter(|file| !file.specifier.contains("99_main.js"))
+            .filter(|file| {
+                !file.specifier.contains("99_main.js")
+                    && !file.specifier.contains("90_deno_ns.js")
+                    && !file.specifier.contains("98_global_scope_shared.js")
+                    && !file.specifier.contains("98_global_scope_worker.js")
+                    && !file.specifier.contains("deno_features/flags.js")
+            })
             .cloned()
             .collect::<Vec<_>>()
             .into();
@@ -201,11 +205,10 @@ impl WebWorkerCallbackOptions {
     }
 }
 
-// Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 fn create_web_worker_callback(options: WebWorkerCallbackOptions) -> Arc<CreateWebWorkerCb> {
     Arc::new(move |args| {
         let node_resolver = Arc::clone(&options.node_resolver);
-        let module_loader = Rc::new(crate::runtime::module::loader::RariModuleLoader::new());
+        let module_loader = Rc::new(RariModuleLoader::new());
 
         let create_web_worker_cb = create_web_worker_callback(options.clone());
 
@@ -245,10 +248,10 @@ fn create_web_worker_callback(options: WebWorkerCallbackOptions) -> Arc<CreateWe
             bootstrap: BootstrapOptions {
                 deno_version: env!("CARGO_PKG_VERSION").to_string(),
                 args: vec![],
-                cpu_count: std::thread::available_parallelism().map(NonZero::get).unwrap_or(1),
+                cpu_count: thread::available_parallelism().map(NonZero::get).unwrap_or(1),
                 log_level: WorkerLogLevel::default(),
                 enable_testing_features: false,
-                locale: deno_core::v8::icu::get_language_tag(),
+                locale: icu::get_language_tag(),
                 location: Some(args.main_module),
                 color_level: colors::get_color_level(),
                 unstable_features: vec![],
@@ -268,6 +271,7 @@ fn create_web_worker_callback(options: WebWorkerCallbackOptions) -> Arc<CreateWe
                 no_legacy_abort: false,
                 is_standalone: false,
                 auto_serve: false,
+                disable_offscreen_canvas: false,
             },
             extensions: vec![],
             startup_snapshot: None,
@@ -280,11 +284,14 @@ fn create_web_worker_callback(options: WebWorkerCallbackOptions) -> Arc<CreateWe
             cache_storage_dir: None,
             trace_ops: None,
             close_on_idle: false,
-            maybe_worker_metadata: None,
+            maybe_worker_metadata: args.maybe_worker_metadata,
+            maybe_main_module_blob: args.maybe_main_module_blob,
             maybe_coverage_dir: None,
             create_params: None,
             enable_stack_trace_arg_in_ops: false,
             enable_raw_imports: false,
+            wait_for_debugger_on_start: args.wait_for_debugger_on_start,
+            wait_for_page_wait_for_debugger: args.wait_for_page_wait_for_debugger,
             residual_lazy_js_sources: &[],
             residual_lazy_esm_sources: &[],
         };

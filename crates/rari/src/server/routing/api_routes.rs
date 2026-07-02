@@ -1,8 +1,13 @@
 #![allow(clippy::unused_async_trait_impl)]
 
-use std::{path::Path, sync::Arc, time::SystemTime};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::SystemTime,
+};
 
 use axum::{
+    body,
     body::Body,
     http::{HeaderMap, Request, Response, StatusCode},
 };
@@ -11,16 +16,19 @@ use dashmap::DashMap;
 use rari_error::RariError;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value as JsonValue, json};
+use serde_json::{Value, json};
+use tokio::fs;
 use tracing::error;
-use urlencoding::decode;
 
-use crate::{runtime::JsExecutionRuntime, server::routing::types::RouteSegment};
+use crate::{
+    runtime::JsExecutionRuntime,
+    server::{middleware::request_context::RequestContext, routing::types::RouteSegment},
+};
 
 fn parse_decoded_path_segments(path: &str) -> Vec<String> {
     path.split('/')
         .filter(|s| !s.is_empty())
-        .map(|s| decode(s).unwrap_or_else(|_| s.to_string().into()).into_owned())
+        .map(|s| urlencoding::decode(s).unwrap_or_else(|_| s.to_string().into()).into_owned())
         .collect()
 }
 
@@ -76,7 +84,7 @@ impl ApiRouteHandler {
         runtime: Arc<JsExecutionRuntime>,
         manifest_path: &str,
     ) -> Result<Self, RariError> {
-        let content = tokio::fs::read_to_string(manifest_path)
+        let content = fs::read_to_string(manifest_path)
             .await
             .map_err(|e| RariError::io(format!("Failed to read API route manifest: {e}")))?;
 
@@ -242,7 +250,7 @@ impl ApiRouteHandler {
         if let Some(cached) = self.handler_cache.get(cache_key) {
             if is_development {
                 let dist_path = Self::resolve_route_dist_path(route)?;
-                if let Ok(metadata) = tokio::fs::metadata(&dist_path).await
+                if let Ok(metadata) = fs::metadata(&dist_path).await
                     && let Ok(modified) = metadata.modified()
                     && modified <= cached.last_modified
                 {
@@ -268,7 +276,7 @@ impl ApiRouteHandler {
             )));
         }
 
-        let code = tokio::fs::read_to_string(&dist_path).await.map_err(|e| {
+        let code = fs::read_to_string(&dist_path).await.map_err(|e| {
             error!(
                 file_path = %file_path,
                 dist_path = %dist_path.display(),
@@ -278,7 +286,7 @@ impl ApiRouteHandler {
             RariError::io(format!("Failed to read handler file: {e}"))
         })?;
 
-        let last_modified = tokio::fs::metadata(&dist_path)
+        let last_modified = fs::metadata(&dist_path)
             .await
             .and_then(|m| m.modified())
             .unwrap_or_else(|_| SystemTime::now());
@@ -302,7 +310,7 @@ impl ApiRouteHandler {
         Ok(compiled)
     }
 
-    fn resolve_route_dist_path(route: &ApiRouteEntry) -> Result<std::path::PathBuf, RariError> {
+    fn resolve_route_dist_path(route: &ApiRouteEntry) -> Result<PathBuf, RariError> {
         if let Some(component_id) = &route.component_id {
             return Ok(Path::new("dist").join("server").join(format!("{component_id}.js")));
         }
@@ -311,7 +319,7 @@ impl ApiRouteHandler {
     }
 
     #[expect(clippy::unnecessary_wraps, reason = "Result return type maintains API consistency")]
-    fn resolve_dist_path(file_path: &str) -> Result<std::path::PathBuf, RariError> {
+    fn resolve_dist_path(file_path: &str) -> Result<PathBuf, RariError> {
         let mut normalized_path = String::new();
         let mut chars = file_path.chars().peekable();
 
@@ -396,7 +404,7 @@ impl ApiRouteHandler {
 
         let (parts, body) = request.into_parts();
 
-        let body_bytes = axum::body::to_bytes(body, MAX_API_BODY_SIZE).await.map_err(|e| {
+        let body_bytes = body::to_bytes(body, MAX_API_BODY_SIZE).await.map_err(|e| {
             error!(
                 route_path = %route_match.route.path,
                 method = %route_match.method,
@@ -416,10 +424,7 @@ impl ApiRouteHandler {
             &route_match.params,
         )?;
 
-        let request_context =
-            std::sync::Arc::new(crate::server::middleware::request_context::RequestContext::new(
-                route_match.route.path.clone(),
-            ));
+        let request_context = Arc::new(RequestContext::new(route_match.route.path.clone()));
 
         self.runtime
             .execute_with_request_context(request_context, async {
@@ -439,10 +444,8 @@ impl ApiRouteHandler {
                     })?
                     .to_string();
 
-                if let Err(e) = self
-                    .runtime
-                    .add_module_to_loader_only(&module_specifier, handler.code.clone())
-                    .await
+                if let Err(e) =
+                    self.runtime.add_module_to_loader(&module_specifier, handler.code.clone()).await
                 {
                     error!(
                         route_path = %route_match.route.path,
@@ -536,7 +539,7 @@ impl ApiRouteHandler {
         headers: &HeaderMap,
         body: &str,
         params: &FxHashMap<String, String>,
-    ) -> Result<JsonValue, RariError> {
+    ) -> Result<Value, RariError> {
         let mut headers_map = FxHashMap::default();
         for (name, value) in headers {
             if let Ok(value_str) = value.to_str() {
@@ -558,9 +561,9 @@ impl ApiRouteHandler {
     async fn execute_handler_from_namespace(
         &self,
         method: &str,
-        request_obj: &JsonValue,
+        request_obj: &Value,
         module_specifier: &str,
-    ) -> Result<JsonValue, RariError> {
+    ) -> Result<Value, RariError> {
         let request_json = serde_json::to_string(request_obj)
             .map_err(|e| RariError::serialization(format!("Failed to serialize request: {e}")))?;
 
@@ -582,7 +585,7 @@ impl ApiRouteHandler {
     }
 
     #[expect(clippy::unused_async_trait_impl, reason = "Async required by trait implementation")]
-    async fn create_response(&self, result: JsonValue) -> Result<Response<Body>, RariError> {
+    async fn create_response(&self, result: Value) -> Result<Response<Body>, RariError> {
         let is_http_envelope = if let Some(status_val) = result.get("status") {
             if let Some(status_num) = status_val.as_u64() {
                 (100..=599).contains(&status_num)

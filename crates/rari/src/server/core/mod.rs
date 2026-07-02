@@ -1,7 +1,16 @@
+use std::{env, fs, path::PathBuf};
+
+use axum::{body::HttpBody, routing};
+use tokio::sync::Mutex;
+
 pub mod types;
 pub mod utils;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    net::SocketAddr,
+    sync::{Arc, atomic::AtomicU64},
+    time::Instant,
+};
 
 use axum::{
     Router,
@@ -10,39 +19,46 @@ use axum::{
     routing::{any, get, post},
 };
 use colored::Colorize;
+use dashmap::DashMap;
 use rari_error::RariError;
 use rustc_hash::FxHashMap;
-use tokio::net::TcpListener;
-use tower_http::{compression::CompressionLayer, services::ServeDir};
+use tokio::{net::TcpListener, sync::RwLock};
+use tower_http::{
+    compression::{CompressionLayer, Predicate},
+    services::ServeDir,
+};
 use tracing::{debug, error};
 use types::ServerState;
 
 use crate::{
-    rsc::{
-        actions::{handle_form_action, handle_server_action},
-        rendering::core::ResourceLimits,
-    },
+    RscHtmlRenderer, RscRenderer,
+    rendering::{base::ResourceLimits, layout::LayoutRenderer},
+    runtime::JsExecutionRuntime,
     server::{
-        cache::{handler::CacheHandlerRegistry, response},
+        cache::{handler::CacheHandlerRegistry, response, warmup},
         config::{
             CACHE_LAYER_IMAGE, CACHE_LAYER_LAYOUT, CACHE_LAYER_OG, CACHE_LAYER_RESPONSE, Config,
         },
         handlers::{
+            actions::{handle_form_action, handle_server_action},
             api::{api_cors_preflight, handle_api_route},
             app::handle_app_route,
             hmr::handle_hmr_action,
+            og::{og_image_handler, og_image_handler_root},
             revalidate::revalidate_by_path,
             route_info::get_route_info,
-            rsc::{health_check, register_client_component, register_component, stream_component},
+            rsc::{health_check, register_client_component, register_component},
             r#static::{
                 cors_preflight_ok, root_handler, serve_static_asset, static_or_spa_handler,
             },
         },
+        image::{ImageCache, ImageConfig, ImageOptimizer, ImageState, handle_image_request},
         loaders::{cache::CacheLoader, component::ComponentLoader},
         middleware::{
-            proxy::ProxyLayer,
+            proxy::{self, ProxyLayer},
             request::{cors_middleware, security_headers_middleware},
         },
+        og::{OgImageCache, OgImageGenerator},
         routing::{api_routes, app_router},
         vite::{
             check_vite_server_health, vite_reverse_proxy, vite_src_proxy, vite_websocket_proxy,
@@ -53,10 +69,10 @@ use crate::{
 #[derive(Clone, Copy, Debug)]
 struct NotStreamingResponse;
 
-impl tower_http::compression::Predicate for NotStreamingResponse {
+impl Predicate for NotStreamingResponse {
     fn should_compress<B>(&self, response: &http::Response<B>) -> bool
     where
-        B: axum::body::HttpBody,
+        B: HttpBody,
     {
         if response.headers().get("content-encoding").is_some() {
             return false;
@@ -89,10 +105,10 @@ impl Server {
             ..ResourceLimits::default()
         };
 
-        let env_vars: rustc_hash::FxHashMap<String, String> = std::env::vars().collect();
-        let js_runtime = Arc::new(crate::runtime::JsExecutionRuntime::new(Some(env_vars)));
+        let env_vars: rustc_hash::FxHashMap<String, String> = env::vars().collect();
+        let js_runtime = Arc::new(JsExecutionRuntime::new(Some(env_vars)));
         let mut renderer =
-            crate::rsc::RscRenderer::with_resource_limits(Arc::clone(&js_runtime), resource_limits);
+            RscRenderer::with_resource_limits(Arc::clone(&js_runtime), resource_limits);
         renderer.initialize().await?;
 
         if config.is_production() {
@@ -103,6 +119,7 @@ impl Server {
         }
 
         ComponentLoader::load_ssr_client_components(&renderer.runtime).await?;
+        ComponentLoader::load_client_reference_manifest(&renderer.runtime).await?;
 
         let app_router = {
             let manifest_path = "dist/server/routes.json";
@@ -136,14 +153,13 @@ impl Server {
 
         let ssr_renderer = {
             let runtime = Arc::clone(&renderer.runtime);
-            let ssr = crate::rsc::RscHtmlRenderer::new(runtime);
+            let ssr = RscHtmlRenderer::new(runtime);
             Arc::new(ssr)
         };
 
-        let renderer_arc = Arc::new(tokio::sync::Mutex::new(renderer));
+        let renderer_arc = Arc::new(Mutex::new(renderer));
 
-        let project_root =
-            std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let project_root = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
 
         let cache_registry = Arc::new(CacheHandlerRegistry::from_env());
 
@@ -161,8 +177,8 @@ impl Server {
 
         let og_generator = {
             let runtime = Arc::clone(&js_runtime);
-            let og_cache = crate::server::og::OgImageCache::with_handler(og_handler, &project_root);
-            let generator = Arc::new(crate::server::og::OgImageGenerator::with_capacity_and_cache(
+            let og_cache = OgImageCache::with_handler(og_handler, &project_root);
+            let generator = Arc::new(OgImageGenerator::with_capacity_and_cache(
                 runtime,
                 project_root.clone(),
                 og_cache,
@@ -182,19 +198,19 @@ impl Server {
             renderer: renderer_arc,
             ssr_renderer,
             config: Arc::new(config.clone()),
-            request_count: Arc::new(std::sync::atomic::AtomicU64::new(0)),
-            start_time: std::time::Instant::now(),
-            component_cache_configs: Arc::new(tokio::sync::RwLock::new(FxHashMap::default())),
-            page_cache_configs: Arc::new(tokio::sync::RwLock::new(FxHashMap::default())),
+            request_count: Arc::new(AtomicU64::new(0)),
+            start_time: Instant::now(),
+            component_cache_configs: Arc::new(RwLock::new(FxHashMap::default())),
+            page_cache_configs: Arc::new(RwLock::new(FxHashMap::default())),
             app_router,
             api_route_handler,
-            html_cache: Arc::new(dashmap::DashMap::new()),
-            layout_html_cache:
-                crate::rsc::rendering::layout::LayoutRenderer::create_shared_cache_from_config(
-                    &layout_layer,
-                    &cache_registry,
-                ),
+            html_cache: Arc::new(DashMap::new()),
+            layout_html_cache: LayoutRenderer::create_shared_cache_from_config(
+                &layout_layer,
+                &cache_registry,
+            ),
             response_cache,
+            static_fast_cache: Arc::new(DashMap::new()),
             og_generator,
             project_root,
             image_optimizer: None,
@@ -206,21 +222,20 @@ impl Server {
             CacheLoader::load_page_cache_configs(&state).await?;
             let warmup_state = state.clone();
             tokio::spawn(async move {
-                crate::server::cache::warmup::warm_cache(&warmup_state).await;
+                warmup::warm_cache(&warmup_state).await;
             });
         }
 
         let mut config = config;
         let config_path = "dist/server/image.json";
 
-        if let Ok(image_config_str) = std::fs::read_to_string(config_path)
-            && let Ok(image_config) =
-                serde_json::from_str::<crate::server::image::ImageConfig>(&image_config_str)
+        if let Ok(image_config_str) = fs::read_to_string(config_path)
+            && let Ok(image_config) = serde_json::from_str::<ImageConfig>(&image_config_str)
         {
             config.images = image_config;
         }
 
-        if let Err(e) = crate::server::middleware::proxy::initialize_proxy(&state).await {
+        if let Err(e) = proxy::initialize_proxy(&state).await {
             error!("Failed to initialize proxy: {}", e);
         }
 
@@ -243,12 +258,12 @@ impl Server {
         let small_body_limit = DefaultBodyLimit::max(100 * 1024);
         let medium_body_limit = DefaultBodyLimit::max(1024 * 1024);
 
-        let image_cache = Arc::new(crate::server::image::ImageCache::with_handler(
+        let image_cache = Arc::new(ImageCache::with_handler(
             Arc::clone(&state.image_handler),
             config.images.max_cache_size,
             &state.project_root,
         ));
-        let image_optimizer = Arc::new(crate::server::image::ImageOptimizer::with_cache(
+        let image_optimizer = Arc::new(ImageOptimizer::with_cache(
             config.images.clone(),
             &state.project_root,
             image_cache,
@@ -256,7 +271,7 @@ impl Server {
 
         state.image_optimizer = Some(Arc::clone(&image_optimizer));
 
-        let image_state = crate::server::image::ImageState { optimizer: image_optimizer };
+        let image_state = ImageState { optimizer: image_optimizer };
 
         let revalidation_router = Router::new()
             .route("/_rari/revalidate", post(revalidate_by_path))
@@ -264,8 +279,6 @@ impl Server {
 
         let mut router = Router::new()
             .route("/_rari/health", get(health_check))
-            .route("/_rari/stream", post(stream_component))
-            .route("/_rari/stream", axum::routing::options(cors_preflight_ok))
             .layer(medium_body_limit)
             .route("/_rari/route-info", post(get_route_info))
             .layer(small_body_limit)
@@ -274,15 +287,14 @@ impl Server {
             .layer(medium_body_limit)
             .merge(revalidation_router);
 
-        let image_router = Router::new()
-            .route("/_rari/image", get(crate::server::image::handle_image_request))
-            .with_state(image_state);
+        let image_router =
+            Router::new().route("/_rari/image", get(handle_image_request)).with_state(image_state);
 
         router = router.merge(image_router);
 
         let og_router = Router::new()
-            .route("/_rari/og/", get(crate::server::handlers::og::og_image_handler_root))
-            .route("/_rari/og/{*path}", get(crate::server::handlers::og::og_image_handler))
+            .route("/_rari/og/", get(og_image_handler_root))
+            .route("/_rari/og/{*path}", get(og_image_handler))
             .with_state(state.clone());
 
         router = router.merge(og_router);
@@ -296,7 +308,7 @@ impl Server {
                 .route("/_rari/register-client", post(register_client_component))
                 .layer(large_body_limit)
                 .route("/_rari/hmr", post(handle_hmr_action))
-                .route("/_rari/hmr", axum::routing::options(cors_preflight_ok))
+                .route("/_rari/hmr", routing::options(cors_preflight_ok))
                 .layer(medium_body_limit)
                 .route("/vite-server", get(vite_websocket_proxy))
                 .route("/vite-server/", get(vite_websocket_proxy))
@@ -313,7 +325,7 @@ impl Server {
         if has_app_router {
             let medium_body_limit = DefaultBodyLimit::max(1024 * 1024);
             router = router
-                .route("/api/{*path}", axum::routing::options(api_cors_preflight))
+                .route("/api/{*path}", routing::options(api_cors_preflight))
                 .route("/api/{*path}", any(handle_api_route))
                 .layer(medium_body_limit);
         }
@@ -325,9 +337,9 @@ impl Server {
 
             router = router
                 .route("/", get(handle_app_route))
-                .route("/", axum::routing::options(cors_preflight_ok))
+                .route("/", routing::options(cors_preflight_ok))
                 .route("/{*path}", get(handle_app_route))
-                .route("/{*path}", axum::routing::options(cors_preflight_ok));
+                .route("/{*path}", routing::options(cors_preflight_ok));
         } else if config.is_production() {
             router =
                 router.route("/", get(root_handler)).route("/{*path}", get(static_or_spa_handler));

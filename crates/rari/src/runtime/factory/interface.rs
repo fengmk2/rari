@@ -1,10 +1,12 @@
-use std::{future::Future, pin::Pin};
+use std::{future::Future, pin::Pin, sync::Arc};
 
 use rari_error::RariError;
-use serde_json::Value as JsonValue;
-use tokio::sync::mpsc;
+use serde_json::Value;
+use tokio::sync::{mpsc, mpsc::Sender};
 
-pub type BatchResultReceiver = mpsc::UnboundedReceiver<(usize, Result<JsonValue, RariError>)>;
+use crate::server::middleware::request_context::RequestContext;
+
+pub type BatchResultReceiver = mpsc::UnboundedReceiver<(usize, Result<Value, RariError>)>;
 pub type AsyncBatchResult = Pin<Box<dyn Future<Output = BatchResultReceiver> + Send>>;
 
 pub trait JsRuntimeInterface: Send + Sync {
@@ -12,20 +14,15 @@ pub trait JsRuntimeInterface: Send + Sync {
         &self,
         script_name: String,
         script_code: String,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, RariError>> + Send>>;
+    ) -> Pin<Box<dyn Future<Output = Result<Value, RariError>> + Send>>;
 
     fn execute_script_batch(&self, scripts: Vec<(String, String)>) -> AsyncBatchResult;
 
     fn execute_function(
         &self,
         function_name: &str,
-        args: Vec<JsonValue>,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, RariError>> + Send + 'static>>;
-
-    fn add_module_to_loader(
-        &self,
-        specifier: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<(), RariError>> + Send>>;
+        args: Vec<Value>,
+    ) -> Pin<Box<dyn Future<Output = Result<Value, RariError>> + Send + 'static>>;
 
     fn load_es_module(
         &self,
@@ -35,14 +32,14 @@ pub trait JsRuntimeInterface: Send + Sync {
     fn evaluate_module(
         &self,
         module_id: deno_core::ModuleId,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, RariError>> + Send>>;
+    ) -> Pin<Box<dyn Future<Output = Result<Value, RariError>> + Send>>;
 
     fn get_module_namespace(
         &self,
         module_id: deno_core::ModuleId,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, RariError>> + Send>>;
+    ) -> Pin<Box<dyn Future<Output = Result<Value, RariError>> + Send>>;
 
-    fn add_module_to_loader_only(
+    fn add_module_to_loader(
         &self,
         specifier: &str,
         code: String,
@@ -55,15 +52,20 @@ pub trait JsRuntimeInterface: Send + Sync {
 
     fn set_request_context(
         &self,
-        request_context: std::sync::Arc<crate::server::middleware::request_context::RequestContext>,
+        request_context: Arc<RequestContext>,
     ) -> Pin<Box<dyn Future<Output = Result<(), RariError>> + Send>>;
 
     fn clear_request_context(&self) -> Pin<Box<dyn Future<Output = Result<(), RariError>> + Send>>;
 
     fn clear_request_context_if_matches(
         &self,
-        expected_context: std::sync::Arc<
-            crate::server::middleware::request_context::RequestContext,
-        >,
+        expected_context: Arc<RequestContext>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), RariError>> + Send>>;
+
+    fn execute_script_for_streaming(
+        &self,
+        script_name: String,
+        script_code: String,
+        chunk_sender: Sender<Result<Vec<u8>, String>>,
     ) -> Pin<Box<dyn Future<Output = Result<(), RariError>> + Send>>;
 }

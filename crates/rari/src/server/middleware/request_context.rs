@@ -1,7 +1,9 @@
 use std::{
+    mem,
     num::NonZeroUsize,
+    string::ToString,
     sync::{Arc, LazyLock},
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use axum::http::HeaderMap;
@@ -11,7 +13,7 @@ use lru::LruCache;
 use parking_lot::Mutex;
 use rari_error::RariError;
 use rustc_hash::{FxHashMap, FxHashSet};
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 use tokio::sync::Mutex as TokioMutex;
 use uuid::Uuid;
 
@@ -45,8 +47,8 @@ impl PendingCookieKey {
     pub fn new(name: &str, path: Option<&str>, domain: Option<&str>) -> Self {
         Self {
             name: name.to_string(),
-            path: path.map(std::string::ToString::to_string),
-            domain: domain.map(std::string::ToString::to_string),
+            path: path.map(ToString::to_string),
+            domain: domain.map(ToString::to_string),
         }
     }
 }
@@ -88,7 +90,7 @@ pub struct RequestContext {
     route_path: String,
     pub cookie_header: Option<String>,
     pub pending_cookies: Arc<DashMap<PendingCookieKey, PendingCookie>>,
-    pub function_cache: Arc<DashMap<String, JsonValue>>,
+    pub function_cache: Arc<DashMap<String, Value>>,
 }
 
 impl RequestContext {
@@ -123,7 +125,7 @@ impl RequestContext {
         self.start_time
     }
 
-    pub fn elapsed(&self) -> std::time::Duration {
+    pub fn elapsed(&self) -> Duration {
         self.start_time.elapsed()
     }
 
@@ -245,7 +247,7 @@ impl RequestContext {
         let mut fetch_result = self.perform_fetch(url, &options).await;
 
         if let Ok(ref mut result) = fetch_result {
-            result.tags = Self::merge_and_sort_tags(std::mem::take(&mut result.tags), tags);
+            result.tags = Self::merge_and_sort_tags(mem::take(&mut result.tags), tags);
         }
 
         *guard = Some(fetch_result.clone());
@@ -279,7 +281,7 @@ impl RequestContext {
 
         let timeout = options.get("timeout").and_then(|t| t.parse::<u64>().ok()).unwrap_or(5000);
 
-        request = request.timeout(std::time::Duration::from_millis(timeout));
+        request = request.timeout(Duration::from_millis(timeout));
 
         let response = request
             .send()
